@@ -3,12 +3,14 @@ import { THEMES } from './config/themes';
 import { OrbitDataSource, type DataStatus } from './data/celestrak';
 import { CONSTELLATION_IDS, CONSTELLATION_NAMES } from './data/constellations';
 import { installHostApi } from './host/api';
+import { installInputGuard } from './host/inputGuard';
 import { SimClock } from './orbit/clock';
 import { OrbitEngine } from './orbit/engine';
 import { View } from './render/view';
 import { Hud } from './ui/hud';
 import { Panel } from './ui/panel';
 
+installInputGuard();
 const app = document.getElementById('app')!;
 const store = loadSettings();
 const clock = new SimClock();

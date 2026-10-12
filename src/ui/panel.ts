@@ -1,8 +1,9 @@
-import GUI, { type Controller } from 'lil-gui';
+import GUI, { OptionController, type Controller } from 'lil-gui';
 import type { SettingsStore, Settings } from '../config/settings';
 import { THEMES } from '../config/themes';
 import { CONSTELLATION_IDS, CONSTELLATION_NAMES, type ConstellationId } from '../data/constellations';
 import type { DataStatus } from '../data/celestrak';
+import { useInPageMenu } from './menuSelect';
 
 export interface PanelActions {
   resetTime(): void;
@@ -90,6 +91,8 @@ export class Panel {
     m.hide = () => store.set({ showUi: false });
     sys.add(m, 'hide').name('UI を隠す（H キーで切替）');
     sys.close();
+
+    for (const c of this.gui.controllersRecursive()) if (c instanceof OptionController) useInPageMenu(c);
 
     store.subscribe((next) => this.sync(next));
     this.sync(s);

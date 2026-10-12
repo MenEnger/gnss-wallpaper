@@ -21,7 +21,7 @@ export interface HostApi {
 export function installHostApi(
   store: SettingsStore,
   hooks: { setPaused(p: boolean): void; getStatus(): DataStatus; resetTime(): void },
-): (s: DataStatus) => void {
+): { api: HostApi; notifyStatus: (s: DataStatus) => void } {
   const listeners = new Set<(s: DataStatus) => void>();
   const api: HostApi = {
     getSettings: () => structuredClone(store.get()),
@@ -43,5 +43,5 @@ export function installHostApi(
     else if (d.type === 'gnss-viewer:paused') hooks.setPaused(!!d.paused);
   });
 
-  return (s) => listeners.forEach((l) => l(s));
+  return { api, notifyStatus: (s) => listeners.forEach((l) => l(s)) };
 }

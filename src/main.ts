@@ -4,6 +4,7 @@ import { OrbitDataSource, type DataStatus } from './data/celestrak';
 import { CONSTELLATION_IDS, CONSTELLATION_NAMES } from './data/constellations';
 import { installHostApi } from './host/api';
 import { installInputGuard } from './host/inputGuard';
+import { installLivelyBridge } from './host/lively';
 import { SimClock } from './orbit/clock';
 import { OrbitEngine } from './orbit/engine';
 import { View } from './render/view';
@@ -44,13 +45,15 @@ const panel: Panel = new Panel(store, {
 });
 panel.setStatus(data.status, '');
 
-notifyHost = installHostApi(store, {
+const host = installHostApi(store, {
   setPaused: (p) => {
     hostPaused = p;
   },
   getStatus: () => data.status,
   resetTime: () => clock.resetToRealTime(),
 });
+notifyHost = host.notifyStatus;
+installLivelyBridge(host.api);
 
 store.subscribe((s, changed) => {
   if (changed.has('theme')) view.setTheme(THEMES[s.theme]);

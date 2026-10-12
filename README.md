@@ -42,6 +42,20 @@ npm run build    # dist/ に静的ファイルを出力
 既定では three-globe のサンプル画像（NASA Blue Marble / Black Marble 由来）を unpkg から読み込む。
 オフラインで使う場合（壁紙化など）は画像を `public/` に置き、`src/config/themes.ts` のパスを差し替える。
 
+## Lively Wallpaper で使う
+
+```bash
+npm run build:lively   # release/gnss-orbit-viewer-lively-<version>.zip を作成
+```
+
+できた .zip を Lively のウィンドウにドラッグ＆ドロップして取り込む。
+
+- **カスタマイズ画面**: ギャラリーで右クリック →「カスタマイズ」。テーマ・ラベル・軌道線・高度倍率・衛星群・カメラ・時間倍率・FPS 上限を変更できる。
+  項目の定義は `src/host/livelyProperties.ts` にあり、`LivelyProperties.json` はそこから生成される
+- **一時停止**: `LivelyInfo.json` の `"Arguments": "--pause-event true"` により、全画面アプリ実行中などに Lively が一時停止すると描画と軌道計算も止まる
+- Lively はファイルを自分のライブラリにコピーするため、ビルドし直したら取り込み直しが必要。開発中は `npm run dev` を動かしたまま URL `http://localhost:5173` を壁紙として追加すると、変更がそのまま反映される
+- Lively はマウス移動を常に転送する一方、押下・解放はデスクトップが前面のときしか転送せず、移動時のボタン状態も正しく渡さない。ドラッグ状態の取り残しを防ぐため、**Lively 上ではドラッグによる視点操作はできない**（自動周回のみ。設定パネルのクリック操作は可）
+
 ## 外部からの制御（壁紙ホスト向け）
 
 URL クエリ:
@@ -67,9 +81,9 @@ window.postMessage({ type: 'gnss-viewer:paused', paused: true });
 
 | 項目 | 値 |
 | --- | --- |
-| 衛星高度倍率 | 50% |
+| 衛星高度倍率 | 10% |
 | 軌跡の長さ | 120 分 |
-| カメラ距離 | 12 地球半径（縦長画面では自動的に引く） |
+| カメラ距離 | 5 地球半径（縦長画面では自動的に引く） |
 | 自動周回速度 | 1.2 度/秒、仰角 18 度 ± 12 度をゆっくり揺らす |
 | 手動操作後の復帰 | 8 秒 |
 

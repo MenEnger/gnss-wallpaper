@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:lively": "npm run build && node scripts/package-lively.ts"
   },
   "dependencies": {
     "lil-gui": "^0.21.0",
@@ -16,6 +17,7 @@
   },
   "devDependencies": {
     "@types/three": "^0.186.0",
+    "fflate": "^0.8.3",
     "typescript": "^7.0.2",
     "vite": "^8.3.4"
   }

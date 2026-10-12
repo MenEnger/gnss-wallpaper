@@ -1,0 +1,103 @@
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  color: #dfe6ee;
+  font-family: system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
+}
+
+#app {
+  position: fixed;
+  inset: 0;
+}
+
+#app > canvas {
+  display: block;
+  touch-action: none;
+}
+
+.label-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.settings-panel {
+  --background-color: rgba(10, 14, 20, 0.78);
+  --widget-color: rgba(255, 255, 255, 0.08);
+  --hover-color: rgba(255, 255, 255, 0.14);
+  --focus-color: rgba(255, 255, 255, 0.2);
+  --title-background-color: rgba(255, 255, 255, 0.06);
+  --name-width: 48%;
+  --font-family: inherit;
+  backdrop-filter: blur(6px);
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 10px;
+}
+
+.settings-panel .constellation .name::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  background: var(--swatch);
+  box-shadow: 0 0 6px var(--swatch);
+}
+
+.settings-panel .non-real-scale .name {
+  color: #ffc861;
+}
+
+.hud {
+  position: absolute;
+  left: 14px;
+  bottom: 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: rgba(220, 230, 240, 0.7);
+  text-shadow: 0 0 4px #000;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-tags:not(:empty)::before {
+  content: ' · ';
+}
+
+.hud-tags {
+  color: #ffc861;
+}
+
+.hud-data[data-state='stale'] {
+  color: #ffc861;
+}
+
+.hud-data[data-state='error'] {
+  color: #ff7a7a;
+}
+
+.ui-toggle {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: #dfe6ee;
+  font-size: 16px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.ui-toggle:hover,
+.ui-toggle:focus-visible {
+  opacity: 1;
+}

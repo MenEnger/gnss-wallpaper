@@ -5,7 +5,8 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { zipSync } from 'fflate';
-import { toLivelyPropertiesJson, toLivelyPropertiesLocJson } from '../src/host/livelyProperties.ts';
+import { toLivelyInfoLocJson, toLivelyPropertiesJson, toLivelyPropertiesLocJson } from '../src/host/livelyProperties.ts';
+import { en } from '../src/locales/en.ts';
 
 const root = join(import.meta.dirname, '..');
 const dist = join(root, 'dist');
@@ -23,7 +24,7 @@ const info = {
   Title: 'GNSS Orbit Viewer',
   Thumbnail: existsSync(thumbnail) ? 'thumbnail.jpg' : null,
   Preview: null,
-  Desc: 'Real-time 3D view of GPS, GLONASS, Galileo, BeiDou and QZSS satellites around the Earth, computed from public orbital data (CelesTrak + SGP4).',
+  Desc: en['lively.desc'],
   Author: 'MarginalEngineer',
   License: 'MIT',
   Contact: 'https://github.com/MenEnger/gnss-wallpaper',
@@ -49,16 +50,9 @@ walk(dist);
 const json = (v: unknown) => new TextEncoder().encode(JSON.stringify(v, null, 2));
 files['LivelyInfo.json'] = json(info);
 files['LivelyProperties.json'] = json(toLivelyPropertiesJson());
-// 日本語訳（Lively v2.2 以降）
+// 英語以外の訳（Lively v2.2 以降）
 files['LivelyProperties.loc.json'] = json(toLivelyPropertiesLocJson());
-files['LivelyInfo.loc.json'] = json({
-  Languages: {
-    'ja-JP': {
-      Title: 'GNSS Orbit Viewer',
-      Desc: 'GPS・GLONASS・Galileo・BeiDou・QZSS の衛星を、公開軌道データ（CelesTrak + SGP4）から計算して 3D 地球とともにリアルタイム表示します。',
-    },
-  },
-});
+files['LivelyInfo.loc.json'] = json(toLivelyInfoLocJson(info.Title));
 if (info.Thumbnail) files['thumbnail.jpg'] = readFileSync(thumbnail);
 
 mkdirSync(outDir, { recursive: true });

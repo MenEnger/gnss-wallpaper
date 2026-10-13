@@ -11,6 +11,7 @@ import { OrbitEngine } from './orbit/engine';
 import { View } from './render/view';
 import { Hud } from './ui/hud';
 import { Notice } from './ui/notice';
+import { SkyCount } from './ui/skyCount';
 import { Panel } from './ui/panel';
 import { setLanguage } from './i18n';
 
@@ -58,6 +59,7 @@ function createPanel(): Panel {
 }
 let panel: Panel = createPanel();
 const notice = new Notice(app, () => void data.refresh());
+const skyCount = new SkyCount(app);
 notice.update(data.status);
 
 const host = installHostApi(store, {
@@ -97,6 +99,7 @@ function draw(dt: number): void {
   engine.configure(trailMs, s.timeScale);
   engine.update(simMs, trailMs, s.timeScale, s.orbitLineMode === 'full');
   view.render(engine, simMs, dt, s);
+  skyCount.update(view.visibleCounts, s.showVisibleCount, s.constellations, THEMES[s.theme]);
   if (s.showUi) hud.setTime(simMs, clock.offsetFromReal());
 }
 

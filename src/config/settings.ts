@@ -1,5 +1,5 @@
 import { CONSTELLATION_IDS, type ConstellationId } from '../data/constellations';
-import type { LanguageSetting } from '../i18n';
+import { LANGS, type LanguageSetting } from '../i18n';
 
 export type ThemeId = 'realistic' | 'technical';
 export type OrbitLineMode = 'trail' | 'full' | 'none';
@@ -37,6 +37,14 @@ export interface Settings {
   /** 手動指定の緯度経度 [度] */
   latitude: number;
   longitude: number;
+  /** 現在地の上空（最低仰角以上）にいる衛星を強調する */
+  highlightVisible: boolean;
+  /** 「見えている」とみなす最低仰角 [度] */
+  minElevation: number;
+  /** 現在地から上空の衛星への見通し線 */
+  skyLines: boolean;
+  /** 上空の衛星の機数を表示する */
+  showVisibleCount: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -57,6 +65,10 @@ export const DEFAULT_SETTINGS: Settings = {
   locationMode: 'auto',
   latitude: 35.68,
   longitude: 139.77,
+  highlightVisible: true,
+  minElevation: 5,
+  skyLines: true,
+  showVisibleCount: true,
 };
 
 export type SettingsPatch = Partial<Omit<Settings, 'constellations'>> & {
@@ -136,10 +148,11 @@ function sanitize(s: Settings): Settings {
     cameraDistance: clamp(s.cameraDistance, 1.5, 30, d.cameraDistance),
     cameraResumeSec: clamp(s.cameraResumeSec, 0, 600, d.cameraResumeSec),
     maxFps: clamp(s.maxFps, 0, 240, d.maxFps),
-    language: (['auto', 'en', 'ja'] as const).includes(s.language) ? s.language : d.language,
+    language: s.language === 'auto' || (LANGS as readonly string[]).includes(s.language) ? s.language : d.language,
     locationMode: (['off', 'auto', 'manual'] as const).includes(s.locationMode) ? s.locationMode : d.locationMode,
     latitude: clamp(s.latitude, -90, 90, d.latitude),
     longitude: clamp(s.longitude, -180, 180, d.longitude),
+    minElevation: clamp(s.minElevation, 0, 60, d.minElevation),
   };
 }
 
@@ -164,6 +177,10 @@ function fromQuery(search: string): SettingsPatch {
   if (q.has('location')) p.locationMode = q.get('location') as LocationMode;
   p.latitude = num('lat');
   p.longitude = num('lon');
+  p.highlightVisible = bool('sky');
+  p.minElevation = num('minel');
+  p.skyLines = bool('skylines');
+  p.showVisibleCount = bool('skycount');
   if (q.has('gnss')) {
     const on = new Set(q.get('gnss')!.split(','));
     p.constellations = Object.fromEntries(CONSTELLATION_IDS.map((id) => [id, on.has(id)]));

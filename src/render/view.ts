@@ -37,6 +37,7 @@ export class View {
   private scene = new THREE.Scene();
   private earth: Earth;
   private marker = new LocationMarker();
+  private location: { lat: number; lon: number } | null = null;
   private sats = new SatelliteLayer();
   private labels: LabelLayer;
   private stars = createStars(2500);
@@ -85,9 +86,23 @@ export class View {
     this.marker.setStyle(theme.locationColor, this.renderer.getPixelRatio());
   }
 
-  /** 地表の現在地マーカー（null で非表示） */
+  /** 地表の現在地マーカー（null で非表示）。上空の衛星の判定にも使う */
   setLocation(location: { lat: number; lon: number } | null): void {
+    this.location = location;
     this.marker.set(location);
+  }
+
+  /** 上空にいる衛星の数（衛星群ごと）。現在地が無いときは null */
+  get visibleCounts() {
+    return this.sats.visibleCounts;
+  }
+
+  /** 現在地の ECI 単位ベクトル（地球の自転角 gmst を反映） */
+  private observerEci(gmstRad: number): [number, number, number] | null {
+    if (!this.location) return null;
+    const lat = THREE.MathUtils.degToRad(this.location.lat);
+    const lon = THREE.MathUtils.degToRad(this.location.lon) + gmstRad;
+    return [Math.cos(lat) * Math.cos(lon), Math.cos(lat) * Math.sin(lon), Math.sin(lat)];
   }
 
   setRecords(engine: OrbitEngine): void {
@@ -113,7 +128,8 @@ export class View {
     this.date.setTime(simMs);
     const [x, y, z] = sunDirectionEci(this.date);
     this.sunScene.set(x, z, -y);
-    this.earth.update(gmst(this.date), this.sunScene);
+    const rotation = gmst(this.date);
+    this.earth.update(rotation, this.sunScene);
     this.marker.update(performance.now() / 1000);
 
     this.rig.update(dtSec, {
@@ -128,6 +144,10 @@ export class View {
       trailMs: s.trailMinutes * 60_000,
       altitudeScale: s.altitudeScale,
       enabled: s.constellations,
+      observer: this.observerEci(rotation),
+      minElevation: s.minElevation,
+      highlightVisible: s.highlightVisible,
+      skyLines: s.skyLines,
     });
     this.renderer.render(this.scene, this.camera);
     this.labels.update(this.camera, engine.records, this.sats.scenePositions, this.sats.visible, s.labelMode, this.theme);

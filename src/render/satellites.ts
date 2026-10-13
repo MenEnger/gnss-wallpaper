@@ -7,30 +7,37 @@ import type { Theme } from '../config/themes';
 import type { ConstellationId } from '../data/constellations';
 import type { SatelliteRecord } from '../data/celestrak';
 import type { OrbitEngine } from '../orbit/engine';
-import { eciToScene } from './coords';
+import { EARTH_RADIUS_KM, eciToScene } from './coords';
 
 const markerVertex = /* glsl */ `
   attribute vec3 color;
+  // 0 = 非表示, 1 = 通常, 2 = 現在地の上空にいる（強調）
   attribute float visible;
   uniform float size;
   varying vec3 vColor;
+  varying float vHighlight;
   void main() {
     vColor = color;
+    vHighlight = visible > 1.5 ? 1.0 : 0.0;
     vec4 mv = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * mv;
-    gl_PointSize = visible > 0.5 ? size : 0.0;
+    gl_PointSize = visible > 0.5 ? size * (1.0 + 0.6 * vHighlight) : 0.0;
   }
 `;
 
 const markerFragment = /* glsl */ `
   uniform float glow;
   varying vec3 vColor;
+  varying float vHighlight;
   void main() {
-    // 点スプライトの 1/3 を芯、残りを光芒にする
+    // 点スプライトの 1/3 を芯、残りを光芒にする（強調時は点が大きいぶん芯を相対的に小さく）
     float r = length(gl_PointCoord - 0.5) * 2.0;
-    float core = 1.0 - smoothstep(0.26, 0.36, r);
+    float coreR = mix(0.26, 0.17, vHighlight);
+    float core = 1.0 - smoothstep(coreR, coreR + 0.08, r);
     float halo = exp(-r * r * 6.0) * glow;
-    float a = max(core, halo);
+    // 強調時は細いリングを足す
+    float ring = vHighlight * (1.0 - smoothstep(0.0, 0.06, abs(r - 0.5))) * 0.75;
+    float a = max(max(core, halo), ring);
     if (a < 0.01) discard;
     vec3 c = mix(vColor, vec3(1.0), core * 0.35);
     gl_FragColor = vec4(c * a, a);
@@ -45,6 +52,21 @@ const markerFragment = /* glsl */ `
 function capless(m: LineMaterial): LineMaterial {
   m.fragmentShader = m.fragmentShader.replace('void main() {', 'void main() {\n\tif ( abs( vUv.y ) > 1.0 ) discard;');
   return m;
+}
+
+/** 描画座標の線分 A→B が地球（半径 1）の内側を通るか。A は地表のわずかに上にある前提 */
+function segmentHitsEarth(ax: number, ay: number, az: number, bx: number, by: number, bz: number): boolean {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const dz = bz - az;
+  const len2 = dx * dx + dy * dy + dz * dz;
+  if (len2 === 0) return false;
+  // 原点に最も近い点の位置（線分上に制限）
+  const t = Math.min(1, Math.max(0, -(ax * dx + ay * dy + az * dz) / len2));
+  const px = ax + dx * t;
+  const py = ay + dy * t;
+  const pz = az + dz * t;
+  return px * px + py * py + pz * pz < 0.999;
 }
 
 /** 線分群（LineSegments2）をバッファを再確保せずに毎フレーム書き換えるためのラッパー */
@@ -107,6 +129,12 @@ export interface SatelliteViewOptions {
   trailMs: number;
   altitudeScale: number;
   enabled: Record<ConstellationId, boolean>;
+  /** 現在地（ECI の単位ベクトル）。null なら上空判定をしない */
+  observer: [number, number, number] | null;
+  /** 上空とみなす最低仰角 [度] */
+  minElevation: number;
+  highlightVisible: boolean;
+  skyLines: boolean;
 }
 
 /** 衛星マーカー・過去軌跡・軌道全体の描画 */
@@ -115,6 +143,10 @@ export class SatelliteLayer {
   /** 現在の描画座標（ラベル配置でも使う）。無効な衛星は visible = 0 */
   scenePositions = new Float32Array(0);
   visible = new Uint8Array(0);
+  /** 現在地の上空（最低仰角以上）にいるか */
+  aboveHorizon = new Uint8Array(0);
+  /** 上空にいる衛星の数（衛星群ごと）。現在地が無いときは null */
+  visibleCounts: Partial<Record<ConstellationId, number>> | null = null;
 
   private records: SatelliteRecord[] = [];
   private points: THREE.Points | null = null;
@@ -124,6 +156,8 @@ export class SatelliteLayer {
   private orbitMaterial: LineMaterial;
   private trails: SegmentBuffer | null = null;
   private orbits: SegmentBuffer | null = null;
+  private skyLineMaterial: LineMaterial;
+  private skyLines: SegmentBuffer | null = null;
   private orbitBuiltFor = { version: -1, altitudeScale: NaN, enabledKey: '' };
   private satColors: THREE.Color[] = [];
   private theme: Theme | null = null;
@@ -151,6 +185,7 @@ export class SatelliteLayer {
     };
     this.trailMaterial = capless(new LineMaterial(lineParams));
     this.orbitMaterial = capless(new LineMaterial(lineParams));
+    this.skyLineMaterial = capless(new LineMaterial({ ...lineParams, linewidth: 1 }));
   }
 
   setRecords(records: SatelliteRecord[], trailSegmentsPerSat: number, orbitSegmentsPerSat: number): void {
@@ -158,6 +193,7 @@ export class SatelliteLayer {
     const n = records.length;
     this.scenePositions = new Float32Array(n * 3);
     this.visible = new Uint8Array(n);
+    this.aboveHorizon = new Uint8Array(n);
 
     if (this.points) this.group.remove(this.points);
     this.pointGeometry?.dispose();
@@ -169,7 +205,7 @@ export class SatelliteLayer {
     this.points.frustumCulled = false;
     this.points.renderOrder = 2;
 
-    for (const buf of [this.trails, this.orbits]) {
+    for (const buf of [this.trails, this.orbits, this.skyLines]) {
       if (buf) {
         this.group.remove(buf.object);
         buf.dispose();
@@ -177,9 +213,11 @@ export class SatelliteLayer {
     }
     this.trails = new SegmentBuffer(Math.max(1, n * trailSegmentsPerSat), this.trailMaterial);
     this.orbits = new SegmentBuffer(Math.max(1, n * orbitSegmentsPerSat), this.orbitMaterial);
+    this.skyLines = new SegmentBuffer(Math.max(1, n), this.skyLineMaterial);
     this.trails.object.renderOrder = 1;
     this.orbits.object.renderOrder = 1;
-    this.group.add(this.orbits.object, this.trails.object, this.points);
+    this.skyLines.object.renderOrder = 1;
+    this.group.add(this.orbits.object, this.trails.object, this.skyLines.object, this.points);
     this.orbitBuiltFor.version = -1;
     if (this.theme) this.setTheme(this.theme);
   }
@@ -207,22 +245,62 @@ export class SatelliteLayer {
   setResolution(width: number, height: number): void {
     this.trailMaterial.resolution.set(width, height);
     this.orbitMaterial.resolution.set(width, height);
+    this.skyLineMaterial.resolution.set(width, height);
   }
 
   update(engine: OrbitEngine, simMs: number, opt: SatelliteViewOptions): void {
     const theme = this.theme;
-    if (!theme || !this.pointGeometry || !this.trails || !this.orbits) return;
+    if (!theme || !this.pointGeometry || !this.trails || !this.orbits || !this.skyLines) return;
     const n = this.records.length;
     const visAttr = this.pointGeometry.getAttribute('visible') as THREE.BufferAttribute;
     const alt = opt.altitudeScale;
 
+    // 現在地の位置 [km] と、上空とみなす仰角の正弦（球形の地球で近似）
+    const obs = opt.observer;
+    const ox = obs ? obs[0] * EARTH_RADIUS_KM : 0;
+    const oy = obs ? obs[1] * EARTH_RADIUS_KM : 0;
+    const oz = obs ? obs[2] * EARTH_RADIUS_KM : 0;
+    const sinMinEl = Math.sin((opt.minElevation * Math.PI) / 180);
+    const counts: Partial<Record<ConstellationId, number>> = {};
+
+    const lines = this.skyLines;
+    lines.count = 0;
+    // 見通し線の地上側の端（描画座標, 地表のわずかに上）
+    const g = this.tmpB;
+    if (obs) eciToScene([obs[0] * EARTH_RADIUS_KM * 1.002, obs[1] * EARTH_RADIUS_KM * 1.002, obs[2] * EARTH_RADIUS_KM * 1.002], 0, 1, g, 0);
+
     for (let i = 0; i < n; i++) {
-      const on = opt.enabled[this.records[i].constellation] && engine.positionAt(simMs, i, this.eci, 0);
-      if (on) eciToScene(this.eci, 0, alt, this.scenePositions, i * 3);
+      const c = this.records[i].constellation;
+      const on = opt.enabled[c] && engine.positionAt(simMs, i, this.eci, 0);
+      let above = false;
+      if (on) {
+        eciToScene(this.eci, 0, alt, this.scenePositions, i * 3);
+        if (obs) {
+          const dx = this.eci[0] - ox;
+          const dy = this.eci[1] - oy;
+          const dz = this.eci[2] - oz;
+          const sinEl = (dx * obs[0] + dy * obs[1] + dz * obs[2]) / Math.hypot(dx, dy, dz);
+          above = sinEl >= sinMinEl;
+        }
+      }
       this.visible[i] = on ? 1 : 0;
-      visAttr.setX(i, on ? 1 : 0);
+      this.aboveHorizon[i] = above ? 1 : 0;
+      if (above) {
+        counts[c] = (counts[c] ?? 0) + 1;
+        const j = i * 3;
+        const sp = this.scenePositions;
+        // 高度を縮めて描いていると、実際は地平線の上でも描画上は地球の陰になることがある。
+        // その場合は線が地球を貫いて途切れるので引かない（強調と機数は実際の位置で判定したまま）
+        if (opt.skyLines && !segmentHitsEarth(g[0], g[1], g[2], sp[j], sp[j + 1], sp[j + 2])) {
+          lines.push(g[0], g[1], g[2], sp[j], sp[j + 1], sp[j + 2], this.satColors[i], 0.3, 0.06);
+        }
+      }
+      visAttr.setX(i, on ? (above && opt.highlightVisible ? 2 : 1) : 0);
     }
     visAttr.needsUpdate = true;
+    lines.commit();
+    lines.object.visible = !!obs && opt.skyLines;
+    this.visibleCounts = obs ? counts : null;
     (this.pointGeometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
 
     this.trails.object.visible = opt.orbitLineMode === 'trail';

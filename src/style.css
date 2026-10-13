@@ -248,3 +248,47 @@ body {
     transform: rotate(360deg);
   }
 }
+
+.sky-count {
+  position: absolute;
+  right: 20px;
+  bottom: 64px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(10, 14, 20, 0.45);
+  color: rgba(225, 232, 240, 0.85);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: right;
+  text-shadow: 0 0 4px #000;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.sky-count[hidden] {
+  display: none;
+}
+
+.sky-count-total {
+  font-weight: 600;
+}
+
+.sky-count-breakdown {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  color: rgba(220, 230, 240, 0.65);
+  font-size: 11px;
+}
+
+.sky-count-breakdown span::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 4px;
+  border-radius: 50%;
+  vertical-align: 1px;
+  background: var(--swatch);
+  box-shadow: 0 0 5px var(--swatch);
+}

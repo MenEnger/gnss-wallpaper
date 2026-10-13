@@ -1,21 +1,8 @@
 import type { DataStatus } from '../data/celestrak';
-import { lang, t, type MessageKey } from '../i18n';
+import { formatDuration, t, type MessageKey } from '../i18n';
 
 /** 読み込み表示を出すまでの猶予（キャッシュや速い回線では出さない） */
 const LOADING_DELAY_MS = 1500;
-
-function formatDuration(ms: number): string {
-  const sec = Math.max(0, Math.ceil(ms / 1000));
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  const s = sec % 60;
-  if (lang() === 'ja') {
-    if (h > 0) return `${h} 時間 ${m} 分`;
-    return m > 0 ? `${m} 分 ${s} 秒` : `${s} 秒`;
-  }
-  if (h > 0) return `${h} h ${m} min`;
-  return m > 0 ? `${m}:${String(s).padStart(2, '0')}` : `${s}s`;
-}
 
 /**
  * 衛星を一つも表示できないとき（初回の読み込み中・取得失敗）に画面下部へ出すお知らせ。

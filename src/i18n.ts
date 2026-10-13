@@ -1,189 +1,19 @@
-/** 表示言語。既定は英語で、ブラウザ／OS の言語が日本語なら日本語にする。 */
-export type Lang = 'en' | 'ja';
+import { LANG_INFO, LANGS, matchLang, type Lang, type MessageKey } from './locales/index.ts';
+import { en } from './locales/en.ts';
+
+/** 表示言語。既定は英語で、ブラウザ／OS の言語が対応言語ならその言語にする。 */
+export { LANGS, LANG_INFO, type Lang, type MessageKey };
 export type LanguageSetting = 'auto' | Lang;
-
-const en = {
-  'folder.view': 'Display',
-  'folder.gnss': 'Constellations',
-  'folder.location': 'Your location',
-  'folder.camera': 'Camera',
-  'folder.time': 'Time',
-  'folder.data': 'Orbit data',
-  'folder.other': 'Other',
-  'folder.about': 'About',
-  theme: 'Theme',
-  labels: 'Labels',
-  'labels.off': 'Hidden',
-  'labels.id': 'ID',
-  'labels.name': 'Name',
-  orbitLines: 'Orbit lines',
-  'orbit.trail': 'Recent trail',
-  'orbit.full': 'Full orbit',
-  'orbit.none': 'Hidden',
-  trailMinutes: 'Trail length [min]',
-  altitude: 'Satellite altitude',
-  'altitude.real': 'Satellite altitude (true scale)',
-  'altitude.scaled': 'Satellite altitude (scaled {pct}%)',
-  'altitude.setReal': 'Use true scale (100%)',
-  locationMode: 'Show',
-  'location.off': 'Off',
-  'location.auto': 'Auto (from time zone)',
-  'location.manual': 'Manual',
-  latitude: 'Latitude [°]',
-  longitude: 'Longitude [°]',
-  'location.source': 'Estimated from',
-  autoCamera: 'Auto orbit',
-  cameraSpeed: 'Orbit speed [°/s]',
-  cameraDistance: 'Distance [Earth radii]',
-  cameraResume: 'Resume after input [s]',
-  timeScale: 'Time scale',
-  'time.paused': 'Paused',
-  'time.real': '×1 (real time)',
-  'time.x60': '×60 (1 min/s)',
-  'time.x600': '×600 (10 min/s)',
-  'time.x3600': '×3600 (1 h/s)',
-  resetTime: 'Back to current time',
-  'data.state': 'Status',
-  'data.fetched': 'Downloaded',
-  'data.oldestEpoch': 'Oldest epoch',
-  'data.refresh': 'Refresh now',
-  'state.loading': 'Loading',
-  'state.fresh': 'Up to date',
-  'state.stale': 'Outdated',
-  'state.error': 'Error',
-  'status.loading': 'Loading orbit data…',
-  'status.fresh': 'Using current orbit data',
-  'status.staleFetch': 'Orbit data is out of date (downloaded {hours} h ago)',
-  'status.staleEpochs': 'Most orbital elements are more than 3 days old',
-  'status.cacheAfterError': 'Update failed; using cached data',
-  'status.cacheAfterErrorDetail': 'Update failed; using cached data ({error})',
-  'status.fetchError': 'Could not download orbit data ({error})',
-  'error.offline': 'no internet connection',
-  'error.timeout': 'no response from CelesTrak',
-  'error.http': 'CelesTrak returned HTTP {httpStatus}',
-  'error.network': 'could not connect to CelesTrak',
-  'error.data': 'received invalid data',
-  'notice.loading': 'Loading satellite orbits…',
-  'notice.errorTitle': 'Satellite orbits unavailable',
-  'notice.offline': 'No internet connection. Satellites will appear once you are back online.',
-  'notice.timeout': 'CelesTrak (the orbit data source) is not responding. It may be temporarily down.',
-  'notice.http': 'CelesTrak (the orbit data source) returned an error (HTTP {httpStatus}).',
-  'notice.network': 'Could not connect to CelesTrak (the orbit data source).',
-  'notice.data': 'The orbit data received from CelesTrak was invalid.',
-  'notice.refused':
-    'CelesTrak (the orbit data source) refused the request (HTTP {httpStatus}). To avoid adding load, it will wait a few hours before trying again.',
-  'notice.retryIn': 'Retrying in {time}',
-  'notice.retrying': 'Retrying…',
-  'notice.retryNow': 'Retry now',
-  language: 'Language',
-  'language.auto': 'Auto',
-  maxFps: 'Max frame rate',
-  'fps.unlimited': 'Unlimited',
-  hideUi: 'Hide UI (toggle with H)',
-  showUiTitle: 'Show settings (H)',
-  'hud.simulated': ' (simulated)',
-  'hud.paused': 'Paused',
-  'hud.timeScale': 'Time ×{scale}',
-  'hud.altitude': 'Altitude {pct}% (not to scale)',
-  'about.credits':
-    'Orbits: CelesTrak GP data (SGP4)<br>Earth imagery: NASA Blue Marble / Black Marble, via three-globe example images<br>Time zone locations: IANA tz database',
-} as const;
-
-export type MessageKey = keyof typeof en;
-
-const ja: Record<MessageKey, string> = {
-  'folder.view': '表示',
-  'folder.gnss': '衛星群',
-  'folder.location': '現在地',
-  'folder.camera': 'カメラ',
-  'folder.time': '時間',
-  'folder.data': '軌道データ',
-  'folder.other': 'その他',
-  'folder.about': 'クレジット',
-  theme: 'テーマ',
-  labels: 'ラベル',
-  'labels.off': '非表示',
-  'labels.id': '識別子',
-  'labels.name': '衛星名',
-  orbitLines: '軌道線',
-  'orbit.trail': '過去の軌跡',
-  'orbit.full': '軌道全体',
-  'orbit.none': '非表示',
-  trailMinutes: '軌跡の長さ [分]',
-  altitude: '衛星高度',
-  'altitude.real': '衛星高度（実寸）',
-  'altitude.scaled': '衛星高度（非実寸 {pct}%）',
-  'altitude.setReal': '実寸（100%）にする',
-  locationMode: '表示',
-  'location.off': 'オフ',
-  'location.auto': '自動（タイムゾーンから推定）',
-  'location.manual': '手動',
-  latitude: '緯度 [度]',
-  longitude: '経度 [度]',
-  'location.source': '推定元',
-  autoCamera: '自動周回',
-  cameraSpeed: '周回速度 [度/秒]',
-  cameraDistance: '距離 [地球半径]',
-  cameraResume: '操作後の復帰 [秒]',
-  timeScale: '時間倍率',
-  'time.paused': '停止',
-  'time.real': '×1（実時間）',
-  'time.x60': '×60（1分/秒）',
-  'time.x600': '×600（10分/秒）',
-  'time.x3600': '×3600（1時間/秒）',
-  resetTime: '現在時刻に戻す',
-  'data.state': '状態',
-  'data.fetched': '取得時刻',
-  'data.oldestEpoch': '最古エポック',
-  'data.refresh': '今すぐ再取得',
-  'state.loading': '読み込み中',
-  'state.fresh': '最新',
-  'state.stale': '古いデータ',
-  'state.error': 'エラー',
-  'status.loading': '軌道データを読み込み中…',
-  'status.fresh': '最新の軌道データを使用中',
-  'status.staleFetch': '軌道データが古くなっています（取得から {hours} 時間）',
-  'status.staleEpochs': '多くの衛星の軌道要素エポックが 3 日以上前です',
-  'status.cacheAfterError': '更新に失敗したためキャッシュを使用中',
-  'status.cacheAfterErrorDetail': '更新に失敗したためキャッシュを使用中（{error}）',
-  'status.fetchError': '軌道データを取得できません（{error}）',
-  'error.offline': 'インターネット未接続',
-  'error.timeout': 'CelesTrak から応答なし',
-  'error.http': 'CelesTrak が HTTP {httpStatus} を返しました',
-  'error.network': 'CelesTrak に接続できません',
-  'error.data': '受信データが不正',
-  'notice.loading': '衛星の軌道データを読み込み中…',
-  'notice.errorTitle': '衛星の軌道データを取得できません',
-  'notice.offline': 'インターネットに接続されていません。接続が戻ると衛星が表示されます。',
-  'notice.timeout': '軌道データの提供元（CelesTrak）が応答しません。一時的に停止している可能性があります。',
-  'notice.http': '軌道データの提供元（CelesTrak）がエラーを返しました（HTTP {httpStatus}）。',
-  'notice.network': '軌道データの提供元（CelesTrak）に接続できません。',
-  'notice.data': 'CelesTrak から受け取った軌道データが不正でした。',
-  'notice.refused': '軌道データの提供元（CelesTrak）がリクエストを拒否しました（HTTP {httpStatus}）。負荷をかけないよう、数時間空けてから再試行します。',
-  'notice.retryIn': '{time}後に再試行します',
-  'notice.retrying': '再試行中…',
-  'notice.retryNow': '今すぐ再試行',
-  language: '言語',
-  'language.auto': '自動',
-  maxFps: '最大フレームレート',
-  'fps.unlimited': '制限なし',
-  hideUi: 'UI を隠す（H キーで切替）',
-  showUiTitle: '設定を表示 (H)',
-  'hud.simulated': '（シミュレーション）',
-  'hud.paused': '停止中',
-  'hud.timeScale': '時間 ×{scale}',
-  'hud.altitude': '高度 {pct}%（非実寸）',
-  'about.credits':
-    '軌道: CelesTrak GP データ（SGP4 で計算）<br>地表画像: NASA Blue Marble / Black Marble（three-globe のサンプル画像経由）<br>タイムゾーンの位置: IANA tz データベース',
-};
-
-const DICTS: Record<Lang, Record<MessageKey, string>> = { en, ja };
 
 let current: Lang = 'en';
 
 export function detectLang(): Lang {
-  const langs = navigator.languages?.length ? navigator.languages : [navigator.language];
-  return langs.some((l) => l?.toLowerCase().startsWith('ja')) ? 'ja' : 'en';
+  const tags = navigator.languages?.length ? navigator.languages : [navigator.language];
+  for (const tag of tags) {
+    const l = tag ? matchLang(tag) : null;
+    if (l) return l;
+  }
+  return 'en';
 }
 
 export function setLanguage(setting: LanguageSetting): Lang {
@@ -197,9 +27,20 @@ export function lang(): Lang {
 }
 
 export function t(key: MessageKey, params?: Record<string, string | number>): string {
-  let s = DICTS[current][key] ?? en[key];
-  if (params) for (const [k, v] of Object.entries(params)) s = s.replace(`{${k}}`, String(v));
+  let s: string = LANG_INFO[current].dict[key] ?? en[key];
+  if (params) for (const [k, v] of Object.entries(params)) s = s.split(`{${k}}`).join(String(v));
   return s;
+}
+
+/** 経過・残り時間の表示（例: 1 h 59 min / 4:05 / 25s） */
+export function formatDuration(ms: number): string {
+  const sec = Math.max(0, Math.ceil(ms / 1000));
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  if (h > 0) return t('duration.hm', { h, m });
+  if (m > 0) return t('duration.ms', { m, s, ss: String(s).padStart(2, '0') });
+  return t('duration.s', { s });
 }
 
 /** 軌道データの状態を表示文にする */

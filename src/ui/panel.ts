@@ -4,7 +4,7 @@ import { THEMES } from '../config/themes';
 import { CONSTELLATION_IDS, CONSTELLATION_NAMES, type ConstellationId } from '../data/constellations';
 import type { DataStatus } from '../data/celestrak';
 import { resolveLocation } from '../data/location';
-import { statusMessage, t } from '../i18n';
+import { LANG_INFO, LANGS, statusMessage, t } from '../i18n';
 import { useInPageMenu } from './menuSelect';
 
 export interface PanelActions {
@@ -29,6 +29,7 @@ export class Panel {
   private altitudeCtl: Controller;
   private constellationCtls = new Map<ConstellationId, Controller>();
   private manualCtls: Controller[] = [];
+  private skyCtls: Controller[] = [];
   private sourceCtl: Controller;
   private unsubscribe: () => void;
 
@@ -80,6 +81,12 @@ export class Panel {
       bind(loc.add(m, 'latitude', -90, 90, 0.01).name(t('latitude')), 'latitude'),
       bind(loc.add(m, 'longitude', -180, 180, 0.01).name(t('longitude')), 'longitude'),
     ];
+    this.skyCtls = [
+      bind(loc.add(m, 'highlightVisible').name(t('sky.highlight')), 'highlightVisible'),
+      bind(loc.add(m, 'minElevation', 0, 30, 1).name(t('sky.minElevation')), 'minElevation'),
+      bind(loc.add(m, 'skyLines').name(t('sky.lines')), 'skyLines'),
+      bind(loc.add(m, 'showVisibleCount').name(t('sky.count')), 'showVisibleCount'),
+    ];
     loc.close();
 
     const cam = this.gui.addFolder(t('folder.camera'));
@@ -116,7 +123,12 @@ export class Panel {
 
     const sys = this.gui.addFolder(t('folder.other'));
     bind(
-      sys.add(m, 'language', { [t('language.auto')]: 'auto', English: 'en', 日本語: 'ja' }).name(t('language')),
+      sys
+        .add(m, 'language', {
+          [t('language.auto')]: 'auto',
+          ...Object.fromEntries(LANGS.map((l) => [LANG_INFO[l].nativeName, l])),
+        })
+        .name(t('language')),
       'language',
     );
     bind(sys.add(m, 'maxFps', { [t('fps.unlimited')]: 0, '60': 60, '30': 30, '15': 15 }).name(t('maxFps')), 'maxFps');
@@ -152,6 +164,7 @@ export class Panel {
     this.altitudeCtl.domElement.classList.toggle('non-real-scale', s.altitudeScale < 1);
 
     for (const c of this.manualCtls) c.show(s.locationMode === 'manual');
+    for (const c of this.skyCtls) c.show(s.locationMode !== 'off');
     const loc = resolveLocation(s);
     this.sourceCtl.show(s.locationMode === 'auto');
     this.status.locationSource = loc?.timeZone ?? '—';

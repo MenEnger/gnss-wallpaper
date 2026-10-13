@@ -12,8 +12,9 @@ A live wallpaper / web app that shows the GPS, GLONASS, Galileo, BeiDou and QZSS
 - **Readable at a glance.** Fading trails or full orbits, per-constellation toggles, and satellite labels that avoid overlapping each other.
 - **Altitude scaling.** GNSS orbits are 3–6 Earth radii out, so by default only the height above the surface is shrunk to 10%. 100% gives true scale.
 - **Your location.** A marker shows roughly where you are. It is estimated from your time zone (no IP lookup, no GPS), or you can set the latitude and longitude yourself.
+- **Your sky.** Satellites above your horizon are highlighted, with lines of sight from your location and a live count per constellation (for example *Satellites in your sky: 57*).
 - **Wallpaper-friendly.** Rendering pauses when hidden or when Lively pauses it. You can cap the frame rate, and the orbit data is cached locally.
-- English and Japanese UI. The language follows your system by default.
+- **10 languages.** English, 日本語, 简体中文, 繁體中文, 한국어, Русский, Español, Français, Deutsch and Português (Brasil). The language follows your system by default.
 
 ## Use with Lively Wallpaper
 
@@ -35,6 +36,10 @@ npm run build:lively   # Lively package in release/
 ```
 
 Drag to rotate and scroll to zoom. Press `H` to show or hide the settings panel.
+
+## Translations
+
+The translations other than English and Japanese were not reviewed by native speakers. Corrections are very welcome — edit the file for your language in [`src/locales/`](src/locales) and open a pull request.
 
 ## Credits
 

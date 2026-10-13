@@ -58,6 +58,21 @@ const en = {
   'status.cacheAfterError': 'Update failed; using cached data',
   'status.cacheAfterErrorDetail': 'Update failed; using cached data ({error})',
   'status.fetchError': 'Could not download orbit data ({error})',
+  'error.offline': 'no internet connection',
+  'error.timeout': 'no response from CelesTrak',
+  'error.http': 'CelesTrak returned HTTP {httpStatus}',
+  'error.network': 'could not connect to CelesTrak',
+  'error.data': 'received invalid data',
+  'notice.loading': 'Loading satellite orbits…',
+  'notice.errorTitle': 'Satellite orbits unavailable',
+  'notice.offline': 'No internet connection. Satellites will appear once you are back online.',
+  'notice.timeout': 'CelesTrak (the orbit data source) is not responding. It may be temporarily down.',
+  'notice.http': 'CelesTrak (the orbit data source) returned an error (HTTP {httpStatus}).',
+  'notice.network': 'Could not connect to CelesTrak (the orbit data source).',
+  'notice.data': 'The orbit data received from CelesTrak was invalid.',
+  'notice.retryIn': 'Retrying in {time}',
+  'notice.retrying': 'Retrying…',
+  'notice.retryNow': 'Retry now',
   language: 'Language',
   'language.auto': 'Auto',
   maxFps: 'Max frame rate',
@@ -130,6 +145,21 @@ const ja: Record<MessageKey, string> = {
   'status.cacheAfterError': '更新に失敗したためキャッシュを使用中',
   'status.cacheAfterErrorDetail': '更新に失敗したためキャッシュを使用中（{error}）',
   'status.fetchError': '軌道データを取得できません（{error}）',
+  'error.offline': 'インターネット未接続',
+  'error.timeout': 'CelesTrak から応答なし',
+  'error.http': 'CelesTrak が HTTP {httpStatus} を返しました',
+  'error.network': 'CelesTrak に接続できません',
+  'error.data': '受信データが不正',
+  'notice.loading': '衛星の軌道データを読み込み中…',
+  'notice.errorTitle': '衛星の軌道データを取得できません',
+  'notice.offline': 'インターネットに接続されていません。接続が戻ると衛星が表示されます。',
+  'notice.timeout': '軌道データの提供元（CelesTrak）が応答しません。一時的に停止している可能性があります。',
+  'notice.http': '軌道データの提供元（CelesTrak）がエラーを返しました（HTTP {httpStatus}）。',
+  'notice.network': '軌道データの提供元（CelesTrak）に接続できません。',
+  'notice.data': 'CelesTrak から受け取った軌道データが不正でした。',
+  'notice.retryIn': '{time}後に再試行します',
+  'notice.retrying': '再試行中…',
+  'notice.retryNow': '今すぐ再試行',
   language: '言語',
   'language.auto': '自動',
   maxFps: '最大フレームレート',
@@ -171,5 +201,7 @@ export function t(key: MessageKey, params?: Record<string, string | number>): st
 
 /** 軌道データの状態を表示文にする */
 export function statusMessage(st: { code: string; params: Record<string, string | number> }): string {
-  return t(`status.${st.code}` as MessageKey, st.params);
+  const { reason, ...rest } = st.params;
+  const error = reason ? t(`error.${reason}` as MessageKey, rest) : '';
+  return t(`status.${st.code}` as MessageKey, { ...rest, error });
 }

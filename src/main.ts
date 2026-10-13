@@ -10,6 +10,7 @@ import { SimClock } from './orbit/clock';
 import { OrbitEngine } from './orbit/engine';
 import { View } from './render/view';
 import { Hud } from './ui/hud';
+import { Notice } from './ui/notice';
 import { Panel } from './ui/panel';
 import { setLanguage } from './i18n';
 
@@ -38,6 +39,7 @@ const data = new OrbitDataSource(
   (status) => {
     panel?.setStatus(status, countsText(status));
     hud.setStatus(status);
+    notice.update(status);
     notifyHost(status);
   },
 );
@@ -55,6 +57,8 @@ function createPanel(): Panel {
   return p;
 }
 let panel: Panel = createPanel();
+const notice = new Notice(app, () => void data.refresh());
+notice.update(data.status);
 
 const host = installHostApi(store, {
   setPaused: (p) => {
@@ -75,6 +79,7 @@ store.subscribe((s, changed) => {
     panel.destroy();
     panel = createPanel();
     hud.setStatus(data.status);
+    notice.refreshText();
   }
   hud.applySettings(s);
 });

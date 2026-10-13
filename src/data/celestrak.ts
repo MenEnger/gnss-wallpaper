@@ -13,8 +13,17 @@ export type DataState = 'loading' | 'fresh' | 'stale' | 'error';
 /** 状態の詳細。表示文は i18n の status.<code> で組み立てる */
 export type StatusCode = 'loading' | 'fresh' | 'staleFetch' | 'staleEpochs' | 'cacheAfterError' | 'cacheAfterErrorDetail' | 'fetchError';
 
+/** 取得失敗の理由。表示文は i18n の error.<reason> */
+export type FetchErrorReason = 'offline' | 'timeout' | 'http' | 'network' | 'data';
+
 export interface DataStatus {
   state: DataState;
+  /** 表示できる軌道データ（キャッシュを含む）があるか */
+  hasData: boolean;
+  /** 取得中か */
+  fetching: boolean;
+  /** データが無いときの次の自動再試行時刻 */
+  nextRetryAt: Date | null;
   /** 取得（ダウンロード）時刻 */
   fetchedAt: Date | null;
   /** 軌道要素エポックの最古値 */
@@ -35,6 +44,27 @@ const MIN_REFETCH_MS = 2 * 3600_000;
 const STALE_EPOCH_MS = 3 * 86400_000;
 /** 取得自体がこれより古い場合も「古い」とみなす */
 const STALE_FETCH_MS = 24 * 3600_000;
+/** 応答が無いときに諦めるまでの時間 */
+const FETCH_TIMEOUT_MS = 20_000;
+/** データが一度も取れていないときの再試行間隔（最後の値を繰り返す） */
+const RETRY_DELAYS_MS = [30_000, 60_000, 120_000, 300_000, 600_000, 900_000];
+
+class FetchError extends Error {
+  constructor(
+    readonly reason: FetchErrorReason,
+    readonly httpStatus?: number,
+  ) {
+    super(httpStatus ? `${reason} ${httpStatus}` : reason);
+  }
+}
+
+function classifyError(e: unknown): FetchError {
+  if (e instanceof FetchError) return e;
+  if (!navigator.onLine) return new FetchError('offline');
+  if (e instanceof DOMException && (e.name === 'TimeoutError' || e.name === 'AbortError')) return new FetchError('timeout');
+  if (e instanceof SyntaxError) return new FetchError('data');
+  return new FetchError('network');
+}
 
 interface CacheEntry {
   fetchedAt: number;
@@ -79,8 +109,14 @@ function toRecords(omms: OMMJsonObject[]): SatelliteRecord[] {
 export class OrbitDataSource {
   private fetchedAt = 0;
   private timer: ReturnType<typeof setInterval> | undefined;
+  private retryTimer: ReturnType<typeof setTimeout> | undefined;
+  private retryCount = 0;
+  private inFlight: Promise<void> | null = null;
   status: DataStatus = {
     state: 'loading',
+    hasData: false,
+    fetching: false,
+    nextRetryAt: null,
     fetchedAt: null,
     oldestEpoch: null,
     usingCacheAfterError: false,
@@ -99,40 +135,67 @@ export class OrbitDataSource {
     if (cache) {
       this.apply(cache, false);
     }
-    if (!cache || Date.now() - cache.fetchedAt > MIN_REFETCH_MS) {
-      await this.refresh();
-    }
     // 長時間実行に備え、定期的に更新を確認する
     this.timer = setInterval(() => {
       if (Date.now() - this.fetchedAt > MIN_REFETCH_MS) void this.refresh();
       else this.updateStaleness();
     }, 15 * 60_000);
+    // ネット接続が戻ったら、データが無い・古い場合はすぐ取りに行く
+    window.addEventListener('online', () => {
+      if (!this.status.hasData || this.status.state !== 'fresh') void this.refresh();
+    });
+    if (!cache || Date.now() - cache.fetchedAt > MIN_REFETCH_MS) {
+      await this.refresh();
+    }
   }
 
   stop(): void {
     clearInterval(this.timer);
+    clearTimeout(this.retryTimer);
   }
 
-  async refresh(): Promise<void> {
+  /** 取得する。取得中に呼ばれた場合は同じ取得を待つ。 */
+  refresh(): Promise<void> {
+    this.inFlight ??= this.doRefresh().finally(() => (this.inFlight = null));
+    return this.inFlight;
+  }
+
+  private async doRefresh(): Promise<void> {
+    clearTimeout(this.retryTimer);
+    this.setStatus({
+      ...this.status,
+      fetching: true,
+      nextRetryAt: null,
+      // 失敗後の再試行中はエラー表示を保つ（「再試行中…」として見せる）
+      ...(this.status.hasData || this.status.state === 'error' ? {} : { state: 'loading' as const, code: 'loading' as const, params: {} }),
+    });
     try {
-      const res = await fetch(SOURCE_URL, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!navigator.onLine) throw new FetchError('offline');
+      const res = await fetch(SOURCE_URL, { cache: 'no-store', signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+      if (!res.ok) throw new FetchError('http', res.status);
       const body = (await res.json()) as unknown;
-      if (!Array.isArray(body) || body.length === 0) throw new Error('empty response');
+      if (!Array.isArray(body) || body.length === 0) throw new FetchError('data');
       const entry: CacheEntry = { fetchedAt: Date.now(), records: body as OMMJsonObject[] };
       writeCache(entry);
+      this.retryCount = 0;
+      this.status.fetching = false;
       this.apply(entry, false);
     } catch (e) {
-      const cache = readCache();
-      if (cache && this.fetchedAt === 0) this.apply(cache, true);
-      else if (cache) {
+      const err = classifyError(e);
+      const params: DataStatus['params'] = { reason: err.reason, ...(err.httpStatus ? { httpStatus: err.httpStatus } : {}) };
+      this.status.fetching = false;
+      const cache = this.status.hasData ? null : readCache();
+      if (cache) this.apply(cache, true);
+      if (this.status.hasData) {
+        // 手元のデータで表示を続け、通常の定期確認で再取得する
         this.status.usingCacheAfterError = true;
         this.updateStaleness();
-      }
-      if (!cache) {
-        this.setStatus({ ...this.status, state: 'error', code: 'fetchError', params: { error: String(e) } });
+        this.setStatus({ ...this.status, code: 'cacheAfterErrorDetail', params });
       } else {
-        this.setStatus({ ...this.status, code: 'cacheAfterErrorDetail', params: { error: String(e) } });
+        // 何も表示できないので、間隔を空けながら自動で再試行する
+        const delay = RETRY_DELAYS_MS[Math.min(this.retryCount++, RETRY_DELAYS_MS.length - 1)];
+        this.retryTimer = setTimeout(() => void this.refresh(), delay);
+        this.setStatus({ ...this.status, state: 'error', code: 'fetchError', params, nextRetryAt: new Date(Date.now() + delay) });
       }
     }
   }
@@ -151,6 +214,8 @@ export class OrbitDataSource {
     }
     this.status = {
       ...this.status,
+      hasData: records.length > 0,
+      nextRetryAt: null,
       fetchedAt: new Date(entry.fetchedAt),
       oldestEpoch: Number.isFinite(oldest) ? new Date(oldest) : null,
       usingCacheAfterError: afterError,

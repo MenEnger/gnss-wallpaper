@@ -69,12 +69,19 @@ export const fr: Record<MessageKey, string> = {
   'notice.loading': 'Chargement des orbites des satellites…',
   'notice.errorTitle': 'Orbites des satellites indisponibles',
   'notice.offline': 'Pas de connexion Internet. Les satellites apparaîtront dès le retour de la connexion.',
-  'notice.timeout': 'CelesTrak (la source des données orbitales) ne répond pas. Le service est peut-être momentanément indisponible.',
+  'notice.timeout':
+    "CelesTrak (la source des données orbitales) ne répond pas. Le service est peut-être momentanément indisponible ou inaccessible depuis votre réseau.",
   'notice.http': 'CelesTrak (la source des données orbitales) a renvoyé une erreur (HTTP {httpStatus}).',
   'notice.network': 'Impossible de se connecter à CelesTrak (la source des données orbitales).',
   'notice.data': 'Les données orbitales reçues de CelesTrak sont invalides.',
-  'notice.refused':
-    'CelesTrak (la source des données orbitales) a refusé la requête (HTTP {httpStatus}). Pour ne pas ajouter de charge, une nouvelle tentative aura lieu dans quelques heures.',
+  'notice.stoppedTitle': "Mise à jour des données orbitales suspendue",
+  'notice.stopped':
+    "CelesTrak (la source des données orbitales) a renvoyé une erreur (HTTP {httpStatus}). Conformément à la politique d’utilisation de CelesTrak, les téléchargements automatiques sont suspendus jusqu’à ce que vous réessayiez.",
+  'notice.stoppedData':
+    "CelesTrak (la source des données orbitales) a renvoyé des données inattendues. Conformément à la politique d’utilisation de CelesTrak, les téléchargements automatiques sont suspendus jusqu’à ce que vous réessayiez.",
+  'notice.stoppedNoResponse':
+    "CelesTrak (la source des données orbitales) n’a pas répondu plusieurs fois de suite. Pour ne pas ajouter de charge, les téléchargements automatiques sont suspendus jusqu’à ce que vous réessayiez.",
+  'notice.retryAvailableIn': "Nouvel essai possible dans {time}",
   'notice.retryIn': 'Nouvelle tentative dans {time}',
   'notice.retrying': 'Nouvelle tentative…',
   'notice.retryNow': 'Réessayer',

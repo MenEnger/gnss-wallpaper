@@ -69,11 +69,19 @@ export const zhCN: Record<MessageKey, string> = {
   'notice.loading': '正在加载卫星轨道…',
   'notice.errorTitle': '无法获取卫星轨道',
   'notice.offline': '未连接互联网。恢复联网后将显示卫星。',
-  'notice.timeout': '轨道数据来源 CelesTrak 无响应，可能暂时停止服务。',
+  'notice.timeout':
+    "轨道数据来源 CelesTrak 无响应，可能暂时停止服务，或无法从您的网络访问。",
   'notice.http': '轨道数据来源 CelesTrak 返回了错误（HTTP {httpStatus}）。',
   'notice.network': '无法连接到轨道数据来源 CelesTrak。',
   'notice.data': '从 CelesTrak 收到的轨道数据无效。',
-  'notice.refused': '轨道数据来源 CelesTrak 拒绝了请求（HTTP {httpStatus}）。为避免增加负载，将在几小时后重试。',
+  'notice.stoppedTitle': "轨道数据更新已暂停",
+  'notice.stopped':
+    "轨道数据来源 CelesTrak 返回了错误（HTTP {httpStatus}）。根据 CelesTrak 的使用政策，在您手动重试之前将暂停自动下载。",
+  'notice.stoppedData':
+    "轨道数据来源 CelesTrak 返回了意外的数据。根据 CelesTrak 的使用政策，在您手动重试之前将暂停自动下载。",
+  'notice.stoppedNoResponse':
+    "轨道数据来源 CelesTrak 连续多次无响应。为避免增加负载，在您手动重试之前将暂停自动下载。",
+  'notice.retryAvailableIn': "{time}后可重试",
   'notice.retryIn': '{time}后重试',
   'notice.retrying': '正在重试…',
   'notice.retryNow': '立即重试',

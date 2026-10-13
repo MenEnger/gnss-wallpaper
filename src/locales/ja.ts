@@ -69,12 +69,19 @@ export const ja: Record<MessageKey, string> = {
   'notice.loading': '衛星の軌道データを読み込み中…',
   'notice.errorTitle': '衛星の軌道データを取得できません',
   'notice.offline': 'インターネットに接続されていません。接続が戻ると衛星が表示されます。',
-  'notice.timeout': '軌道データの提供元（CelesTrak）が応答しません。一時的に停止している可能性があります。',
+  'notice.timeout':
+    "軌道データの提供元（CelesTrak）が応答しません。一時的に停止しているか、お使いのネットワークから接続できない可能性があります。",
   'notice.http': '軌道データの提供元（CelesTrak）がエラーを返しました（HTTP {httpStatus}）。',
   'notice.network': '軌道データの提供元（CelesTrak）に接続できません。',
   'notice.data': 'CelesTrak から受け取った軌道データが不正でした。',
-  'notice.refused':
-    '軌道データの提供元（CelesTrak）がリクエストを拒否しました（HTTP {httpStatus}）。負荷をかけないよう、数時間空けてから再試行します。',
+  'notice.stoppedTitle': "軌道データの更新を停止しました",
+  'notice.stopped':
+    "軌道データの提供元（CelesTrak）がエラーを返しました（HTTP {httpStatus}）。CelesTrak の利用ポリシーに従い、再試行するまで自動の取得を止めています。",
+  'notice.stoppedData':
+    "軌道データの提供元（CelesTrak）から想定外のデータが返りました。CelesTrak の利用ポリシーに従い、再試行するまで自動の取得を止めています。",
+  'notice.stoppedNoResponse':
+    "軌道データの提供元（CelesTrak）から何度か続けて応答がありませんでした。負荷をかけないよう、再試行するまで自動の取得を止めています。",
+  'notice.retryAvailableIn': "{time}後に再試行できます",
   'notice.retryIn': '{time}後に再試行します',
   'notice.retrying': '再試行中…',
   'notice.retryNow': '今すぐ再試行',

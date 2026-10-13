@@ -69,11 +69,19 @@ export const zhHant: Record<MessageKey, string> = {
   'notice.loading': '正在載入衛星軌道…',
   'notice.errorTitle': '無法取得衛星軌道',
   'notice.offline': '未連線至網際網路。恢復連線後將顯示衛星。',
-  'notice.timeout': '軌道資料來源 CelesTrak 沒有回應，可能暫時停止服務。',
+  'notice.timeout':
+    "軌道資料來源 CelesTrak 沒有回應，可能暫時停止服務，或無法從您的網路連線。",
   'notice.http': '軌道資料來源 CelesTrak 傳回錯誤（HTTP {httpStatus}）。',
   'notice.network': '無法連線至軌道資料來源 CelesTrak。',
   'notice.data': '從 CelesTrak 收到的軌道資料無效。',
-  'notice.refused': '軌道資料來源 CelesTrak 拒絕了請求（HTTP {httpStatus}）。為避免增加負載，將在數小時後重試。',
+  'notice.stoppedTitle': "軌道資料更新已暫停",
+  'notice.stopped':
+    "軌道資料來源 CelesTrak 傳回錯誤（HTTP {httpStatus}）。依照 CelesTrak 的使用政策，在您手動重試之前將暫停自動下載。",
+  'notice.stoppedData':
+    "軌道資料來源 CelesTrak 傳回了非預期的資料。依照 CelesTrak 的使用政策，在您手動重試之前將暫停自動下載。",
+  'notice.stoppedNoResponse':
+    "軌道資料來源 CelesTrak 連續多次沒有回應。為避免增加負載，在您手動重試之前將暫停自動下載。",
+  'notice.retryAvailableIn': "{time}後可重試",
   'notice.retryIn': '{time}後重試',
   'notice.retrying': '正在重試…',
   'notice.retryNow': '立即重試',

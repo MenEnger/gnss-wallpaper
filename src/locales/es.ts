@@ -69,12 +69,19 @@ export const es: Record<MessageKey, string> = {
   'notice.loading': 'Cargando órbitas de satélites…',
   'notice.errorTitle': 'Órbitas de satélites no disponibles',
   'notice.offline': 'Sin conexión a internet. Los satélites aparecerán cuando vuelvas a estar en línea.',
-  'notice.timeout': 'CelesTrak (la fuente de los datos orbitales) no responde. Puede que esté caído temporalmente.',
+  'notice.timeout':
+    "CelesTrak (la fuente de los datos orbitales) no responde. Puede que esté caído temporalmente o que no sea accesible desde tu red.",
   'notice.http': 'CelesTrak (la fuente de los datos orbitales) devolvió un error (HTTP {httpStatus}).',
   'notice.network': 'No se pudo conectar con CelesTrak (la fuente de los datos orbitales).',
   'notice.data': 'Los datos orbitales recibidos de CelesTrak no son válidos.',
-  'notice.refused':
-    'CelesTrak (la fuente de los datos orbitales) rechazó la solicitud (HTTP {httpStatus}). Para no añadir carga, esperará unas horas antes de volver a intentarlo.',
+  'notice.stoppedTitle': "Actualización de datos orbitales en pausa",
+  'notice.stopped':
+    "CelesTrak (la fuente de los datos orbitales) devolvió un error (HTTP {httpStatus}). Según la política de uso de CelesTrak, las descargas automáticas quedan en pausa hasta que vuelvas a intentarlo.",
+  'notice.stoppedData':
+    "CelesTrak (la fuente de los datos orbitales) devolvió datos inesperados. Según la política de uso de CelesTrak, las descargas automáticas quedan en pausa hasta que vuelvas a intentarlo.",
+  'notice.stoppedNoResponse':
+    "CelesTrak (la fuente de los datos orbitales) no respondió varias veces seguidas. Para no añadir carga, las descargas automáticas quedan en pausa hasta que vuelvas a intentarlo.",
+  'notice.retryAvailableIn': "Podrás reintentar en {time}",
   'notice.retryIn': 'Reintentando en {time}',
   'notice.retrying': 'Reintentando…',
   'notice.retryNow': 'Reintentar ahora',

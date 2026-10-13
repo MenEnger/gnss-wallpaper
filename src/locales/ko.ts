@@ -69,12 +69,19 @@ export const ko: Record<MessageKey, string> = {
   'notice.loading': '위성 궤도를 불러오는 중…',
   'notice.errorTitle': '위성 궤도를 가져올 수 없습니다',
   'notice.offline': '인터넷에 연결되어 있지 않습니다. 다시 연결되면 위성이 표시됩니다.',
-  'notice.timeout': '궤도 데이터 제공처(CelesTrak)가 응답하지 않습니다. 일시적으로 중단되었을 수 있습니다.',
+  'notice.timeout':
+    "궤도 데이터 제공처(CelesTrak)가 응답하지 않습니다. 일시적으로 중단되었거나 현재 네트워크에서 접속할 수 없는 상태일 수 있습니다.",
   'notice.http': '궤도 데이터 제공처(CelesTrak)가 오류를 반환했습니다 (HTTP {httpStatus}).',
   'notice.network': '궤도 데이터 제공처(CelesTrak)에 연결할 수 없습니다.',
   'notice.data': 'CelesTrak에서 받은 궤도 데이터가 올바르지 않습니다.',
-  'notice.refused':
-    '궤도 데이터 제공처(CelesTrak)가 요청을 거부했습니다 (HTTP {httpStatus}). 부하를 주지 않도록 몇 시간 후에 다시 시도합니다.',
+  'notice.stoppedTitle': "궤도 데이터 업데이트 일시 중지됨",
+  'notice.stopped':
+    "궤도 데이터 제공처(CelesTrak)가 오류를 반환했습니다 (HTTP {httpStatus}). CelesTrak 이용 정책에 따라 다시 시도할 때까지 자동 다운로드를 중지합니다.",
+  'notice.stoppedData':
+    "궤도 데이터 제공처(CelesTrak)가 예상치 못한 데이터를 반환했습니다. CelesTrak 이용 정책에 따라 다시 시도할 때까지 자동 다운로드를 중지합니다.",
+  'notice.stoppedNoResponse':
+    "궤도 데이터 제공처(CelesTrak)가 여러 번 연속으로 응답하지 않았습니다. 부하를 주지 않도록 다시 시도할 때까지 자동 다운로드를 중지합니다.",
+  'notice.retryAvailableIn': "{time} 후 다시 시도할 수 있습니다",
   'notice.retryIn': '{time} 후 다시 시도',
   'notice.retrying': '다시 시도하는 중…',
   'notice.retryNow': '지금 다시 시도',

@@ -69,12 +69,19 @@ export const de: Record<MessageKey, string> = {
   'notice.loading': 'Satellitenbahnen werden geladen…',
   'notice.errorTitle': 'Satellitenbahnen nicht verfügbar',
   'notice.offline': 'Keine Internetverbindung. Die Satelliten erscheinen, sobald Sie wieder online sind.',
-  'notice.timeout': 'CelesTrak (die Quelle der Bahndaten) antwortet nicht. Der Dienst ist möglicherweise vorübergehend nicht erreichbar.',
+  'notice.timeout':
+    "CelesTrak (die Quelle der Bahndaten) antwortet nicht. Der Dienst ist möglicherweise vorübergehend ausgefallen oder aus Ihrem Netzwerk nicht erreichbar.",
   'notice.http': 'CelesTrak (die Quelle der Bahndaten) hat einen Fehler gemeldet (HTTP {httpStatus}).',
   'notice.network': 'Keine Verbindung zu CelesTrak (der Quelle der Bahndaten).',
   'notice.data': 'Die von CelesTrak empfangenen Bahndaten sind ungültig.',
-  'notice.refused':
-    'CelesTrak (die Quelle der Bahndaten) hat die Anfrage abgelehnt (HTTP {httpStatus}). Um keine zusätzliche Last zu erzeugen, wird erst in einigen Stunden erneut versucht.',
+  'notice.stoppedTitle': "Aktualisierung der Bahndaten angehalten",
+  'notice.stopped':
+    "CelesTrak (die Quelle der Bahndaten) hat einen Fehler gemeldet (HTTP {httpStatus}). Gemäß der Nutzungsrichtlinie von CelesTrak werden automatische Downloads angehalten, bis Sie es erneut versuchen.",
+  'notice.stoppedData':
+    "CelesTrak (die Quelle der Bahndaten) hat unerwartete Daten geliefert. Gemäß der Nutzungsrichtlinie von CelesTrak werden automatische Downloads angehalten, bis Sie es erneut versuchen.",
+  'notice.stoppedNoResponse':
+    "CelesTrak (die Quelle der Bahndaten) hat mehrmals hintereinander nicht geantwortet. Um keine zusätzliche Last zu erzeugen, werden automatische Downloads angehalten, bis Sie es erneut versuchen.",
+  'notice.retryAvailableIn': "Erneuter Versuch möglich in {time}",
   'notice.retryIn': 'Neuer Versuch in {time}',
   'notice.retrying': 'Neuer Versuch…',
   'notice.retryNow': 'Jetzt erneut versuchen',

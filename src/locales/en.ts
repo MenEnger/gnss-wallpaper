@@ -72,12 +72,19 @@ export const en = {
   'notice.loading': 'Loading satellite orbits…',
   'notice.errorTitle': 'Satellite orbits unavailable',
   'notice.offline': 'No internet connection. Satellites will appear once you are back online.',
-  'notice.timeout': 'CelesTrak (the orbit data source) is not responding. It may be temporarily down.',
+  'notice.timeout':
+    "CelesTrak (the orbit data source) is not responding. It may be temporarily down, or unreachable from your network.",
   'notice.http': 'CelesTrak (the orbit data source) returned an error (HTTP {httpStatus}).',
   'notice.network': 'Could not connect to CelesTrak (the orbit data source).',
   'notice.data': 'The orbit data received from CelesTrak was invalid.',
-  'notice.refused':
-    'CelesTrak (the orbit data source) refused the request (HTTP {httpStatus}). To avoid adding load, it will wait a few hours before trying again.',
+  'notice.stoppedTitle': "Orbit data updates paused",
+  'notice.stopped':
+    "CelesTrak (the orbit data source) responded with an error (HTTP {httpStatus}). Following CelesTrak's usage policy, automatic downloads are paused until you retry.",
+  'notice.stoppedData':
+    "CelesTrak (the orbit data source) returned unexpected data. Following CelesTrak's usage policy, automatic downloads are paused until you retry.",
+  'notice.stoppedNoResponse':
+    "CelesTrak (the orbit data source) did not respond several times in a row. To avoid adding load, automatic downloads are paused until you retry.",
+  'notice.retryAvailableIn': "You can retry in {time}",
   'notice.retryIn': 'Retrying in {time}',
   'notice.retrying': 'Retrying…',
   'notice.retryNow': 'Retry now',

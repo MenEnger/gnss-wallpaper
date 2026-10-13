@@ -37,6 +37,12 @@ npm run build:lively   # Lively package in release/
 
 Drag to rotate and scroll to zoom. Press `H` to show or hide the settings panel.
 
+### Being nice to CelesTrak
+
+CelesTrak asks clients not to query more than once per hour and to stop immediately on any non-200 response; IP addresses that keep querying get firewalled ([usage policy](https://celestrak.org/usage-policy.php)). This app downloads at most every 2 hours, shares one cache between all instances on the machine, and pauses automatic downloads after an error response until the user retries.
+
+During development the dev server proxies CelesTrak through a disk cache (`.cache/`), so reloads or fresh browser profiles do not add requests. To work without contacting CelesTrak at all, point `OMM_FIXTURE` at a saved OMM JSON file before `npm run dev`.
+
 ## Translations
 
 The translations other than English and Japanese were not reviewed by native speakers. Corrections are very welcome — edit the file for your language in [`src/locales/`](src/locales) and open a pull request.

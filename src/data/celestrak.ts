@@ -48,13 +48,55 @@ const STALE_FETCH_MS = 24 * 3600_000;
 const FETCH_TIMEOUT_MS = 20_000;
 /** データが一度も取れていないときの再試行間隔（最後の値を繰り返す） */
 const RETRY_DELAYS_MS = [30_000, 60_000, 120_000, 300_000, 600_000, 900_000];
+/**
+ * CelesTrak がリクエストを拒否したとき（403: 遮断、429: 過多）は、負荷をかけないよう長く待つ。
+ * 待機中は定期確認・オンライン復帰・手動の再試行もすべて止める。
+ */
+const REFUSED_BACKOFF_MS: Record<number, number> = { 403: 6 * 3600_000, 429: 2 * 3600_000 };
+/** 待機の終了時刻。再読み込みや Lively の再起動でも守られるよう保存する */
+const BACKOFF_KEY = 'gnss-viewer.backoff-until.v1';
 
 class FetchError extends Error {
   constructor(
     readonly reason: FetchErrorReason,
     readonly httpStatus?: number,
+    /** サーバーが Retry-After で指定した待ち時間 */
+    readonly retryAfterMs?: number,
   ) {
     super(httpStatus ? `${reason} ${httpStatus}` : reason);
+  }
+}
+
+/** Retry-After（秒数または日時）を ms に変換する。CORS で読めない場合は undefined */
+function parseRetryAfter(value: string | null): number | undefined {
+  if (!value) return undefined;
+  const sec = Number(value);
+  if (Number.isFinite(sec)) return sec * 1000;
+  const at = Date.parse(value);
+  return Number.isFinite(at) ? Math.max(0, at - Date.now()) : undefined;
+}
+
+interface Backoff {
+  until: number;
+  httpStatus: number;
+}
+
+function readBackoff(): Backoff {
+  try {
+    const b = JSON.parse(localStorage.getItem(BACKOFF_KEY) ?? 'null') as Backoff | null;
+    if (b && Number.isFinite(b.until) && Number.isFinite(b.httpStatus)) return b;
+  } catch {
+    /* 破損データは無視 */
+  }
+  return { until: 0, httpStatus: 0 };
+}
+
+function writeBackoff(b: Backoff): void {
+  try {
+    if (b.until > Date.now()) localStorage.setItem(BACKOFF_KEY, JSON.stringify(b));
+    else localStorage.removeItem(BACKOFF_KEY);
+  } catch {
+    /* 保存できない環境ではこの実行中だけ守る */
   }
 }
 
@@ -112,6 +154,8 @@ export class OrbitDataSource {
   private retryTimer: ReturnType<typeof setTimeout> | undefined;
   private retryCount = 0;
   private inFlight: Promise<void> | null = null;
+  /** この時刻までは CelesTrak に問い合わせない（403/429 を受けたとき） */
+  private backoff = readBackoff();
   status: DataStatus = {
     state: 'loading',
     hasData: false,
@@ -154,10 +198,30 @@ export class OrbitDataSource {
     clearTimeout(this.retryTimer);
   }
 
-  /** 取得する。取得中に呼ばれた場合は同じ取得を待つ。 */
+  /** 取得する。取得中に呼ばれた場合は同じ取得を待つ。拒否後の待機中は何もしない。 */
   refresh(): Promise<void> {
+    if (Date.now() < this.backoff.until) {
+      this.showBackoff();
+      return Promise.resolve();
+    }
     this.inFlight ??= this.doRefresh().finally(() => (this.inFlight = null));
     return this.inFlight;
+  }
+
+  /**
+   * 拒否後の待機中であることを表示し、待機明けに取得し直す
+   * （データが無い場合のみ。ある場合は手元のデータで表示を続け、定期確認に任せる）
+   */
+  private showBackoff(): void {
+    const params = { reason: 'http', httpStatus: this.backoff.httpStatus, refused: 1 };
+    const nextRetryAt = new Date(this.backoff.until);
+    clearTimeout(this.retryTimer);
+    if (this.status.hasData) {
+      this.setStatus({ ...this.status, code: 'cacheAfterErrorDetail', params, nextRetryAt });
+    } else {
+      this.retryTimer = setTimeout(() => void this.refresh(), Math.max(1000, this.backoff.until - Date.now()));
+      this.setStatus({ ...this.status, state: 'error', code: 'fetchError', params, nextRetryAt });
+    }
   }
 
   private async doRefresh(): Promise<void> {
@@ -172,28 +236,43 @@ export class OrbitDataSource {
     try {
       if (!navigator.onLine) throw new FetchError('offline');
       const res = await fetch(SOURCE_URL, { cache: 'no-store', signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
-      if (!res.ok) throw new FetchError('http', res.status);
+      if (!res.ok) throw new FetchError('http', res.status, parseRetryAfter(res.headers.get('Retry-After')));
       const body = (await res.json()) as unknown;
       if (!Array.isArray(body) || body.length === 0) throw new FetchError('data');
       const entry: CacheEntry = { fetchedAt: Date.now(), records: body as OMMJsonObject[] };
       writeCache(entry);
       this.retryCount = 0;
+      this.backoff = { until: 0, httpStatus: 0 };
+      writeBackoff(this.backoff);
       this.status.fetching = false;
       this.apply(entry, false);
     } catch (e) {
       const err = classifyError(e);
       const params: DataStatus['params'] = { reason: err.reason, ...(err.httpStatus ? { httpStatus: err.httpStatus } : {}) };
       this.status.fetching = false;
+      const refusedWait = err.httpStatus ? REFUSED_BACKOFF_MS[err.httpStatus] : undefined;
+      if (refusedWait) {
+        this.backoff = { until: Date.now() + Math.max(refusedWait, err.retryAfterMs ?? 0), httpStatus: err.httpStatus! };
+        writeBackoff(this.backoff);
+        params.refused = 1;
+      }
       const cache = this.status.hasData ? null : readCache();
       if (cache) this.apply(cache, true);
       if (this.status.hasData) {
         // 手元のデータで表示を続け、通常の定期確認で再取得する
         this.status.usingCacheAfterError = true;
         this.updateStaleness();
-        this.setStatus({ ...this.status, code: 'cacheAfterErrorDetail', params });
+        this.setStatus({
+          ...this.status,
+          code: 'cacheAfterErrorDetail',
+          params,
+          nextRetryAt: refusedWait ? new Date(this.backoff.until) : null,
+        });
       } else {
-        // 何も表示できないので、間隔を空けながら自動で再試行する
-        const delay = RETRY_DELAYS_MS[Math.min(this.retryCount++, RETRY_DELAYS_MS.length - 1)];
+        // 何も表示できないので、間隔を空けながら自動で再試行する（拒否された場合は待機明けまで待つ）
+        const delay = refusedWait
+          ? this.backoff.until - Date.now()
+          : RETRY_DELAYS_MS[Math.min(this.retryCount++, RETRY_DELAYS_MS.length - 1)];
         this.retryTimer = setTimeout(() => void this.refresh(), delay);
         this.setStatus({ ...this.status, state: 'error', code: 'fetchError', params, nextRetryAt: new Date(Date.now() + delay) });
       }

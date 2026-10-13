@@ -70,6 +70,8 @@ const en = {
   'notice.http': 'CelesTrak (the orbit data source) returned an error (HTTP {httpStatus}).',
   'notice.network': 'Could not connect to CelesTrak (the orbit data source).',
   'notice.data': 'The orbit data received from CelesTrak was invalid.',
+  'notice.refused':
+    'CelesTrak (the orbit data source) refused the request (HTTP {httpStatus}). To avoid adding load, it will wait a few hours before trying again.',
   'notice.retryIn': 'Retrying in {time}',
   'notice.retrying': 'Retrying…',
   'notice.retryNow': 'Retry now',
@@ -157,6 +159,7 @@ const ja: Record<MessageKey, string> = {
   'notice.http': '軌道データの提供元（CelesTrak）がエラーを返しました（HTTP {httpStatus}）。',
   'notice.network': '軌道データの提供元（CelesTrak）に接続できません。',
   'notice.data': 'CelesTrak から受け取った軌道データが不正でした。',
+  'notice.refused': '軌道データの提供元（CelesTrak）がリクエストを拒否しました（HTTP {httpStatus}）。負荷をかけないよう、数時間空けてから再試行します。',
   'notice.retryIn': '{time}後に再試行します',
   'notice.retrying': '再試行中…',
   'notice.retryNow': '今すぐ再試行',

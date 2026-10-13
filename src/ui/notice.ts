@@ -6,9 +6,14 @@ const LOADING_DELAY_MS = 1500;
 
 function formatDuration(ms: number): string {
   const sec = Math.max(0, Math.ceil(ms / 1000));
-  const m = Math.floor(sec / 60);
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
   const s = sec % 60;
-  if (lang() === 'ja') return m > 0 ? `${m} 分 ${s} 秒` : `${s} 秒`;
+  if (lang() === 'ja') {
+    if (h > 0) return `${h} 時間 ${m} 分`;
+    return m > 0 ? `${m} 分 ${s} 秒` : `${s} 秒`;
+  }
+  if (h > 0) return `${h} h ${m} min`;
   return m > 0 ? `${m}:${String(s).padStart(2, '0')}` : `${s}s`;
 }
 
@@ -81,12 +86,14 @@ export class Notice {
       this.detail.textContent = '';
       this.footer.hidden = true;
     } else {
-      const { reason, ...params } = st.params;
+      const { reason, refused, ...params } = st.params;
       this.title.textContent = t('notice.errorTitle');
-      this.detail.textContent = t(`notice.${reason ?? 'network'}` as MessageKey, params);
+      this.detail.textContent = t(refused ? 'notice.refused' : (`notice.${reason ?? 'network'}` as MessageKey), params);
       this.footer.hidden = false;
       this.retry.textContent = t('notice.retryNow');
       this.retry.disabled = st.fetching;
+      // 拒否されている間は手動でも問い合わせない
+      this.retry.hidden = !!refused;
       this.updateCountdown();
       this.tick ??= setInterval(() => this.updateCountdown(), 1000);
     }

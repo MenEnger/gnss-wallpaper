@@ -2,6 +2,7 @@ import { loadSettings } from './config/settings';
 import { THEMES } from './config/themes';
 import { OrbitDataSource, type DataStatus } from './data/celestrak';
 import { CONSTELLATION_IDS, CONSTELLATION_NAMES } from './data/constellations';
+import { resolveLocation } from './data/location';
 import { installHostApi } from './host/api';
 import { installInputGuard } from './host/inputGuard';
 import { installLivelyBridge } from './host/lively';
@@ -10,10 +11,12 @@ import { OrbitEngine } from './orbit/engine';
 import { View } from './render/view';
 import { Hud } from './ui/hud';
 import { Panel } from './ui/panel';
+import { setLanguage } from './i18n';
 
 installInputGuard();
 const app = document.getElementById('app')!;
 const store = loadSettings();
+setLanguage(store.get().language);
 const clock = new SimClock();
 clock.setTimeScale(store.get().timeScale);
 
@@ -21,6 +24,7 @@ const engine = new OrbitEngine();
 const view = new View(app);
 view.setTheme(THEMES[store.get().theme]);
 view.placeCamera(store.get().cameraDistance, clock.now());
+view.setLocation(resolveLocation(store.get()));
 
 const hud = new Hud(app, () => store.set({ showUi: true }));
 let hostPaused = false;
@@ -32,18 +36,25 @@ const data = new OrbitDataSource(
     view.setRecords(engine);
   },
   (status) => {
-    const counts = CONSTELLATION_IDS.map((id) => `${CONSTELLATION_NAMES[id]} ${status.counts[id] ?? 0}`).join(', ');
-    panel?.setStatus(status, counts);
+    panel?.setStatus(status, countsText(status));
     hud.setStatus(status);
     notifyHost(status);
   },
 );
 
-const panel: Panel = new Panel(store, {
-  resetTime: () => clock.resetToRealTime(),
-  refreshData: () => void data.refresh(),
-});
-panel.setStatus(data.status, '');
+function countsText(status: DataStatus): string {
+  return status.fetchedAt ? CONSTELLATION_IDS.map((id) => `${CONSTELLATION_NAMES[id]} ${status.counts[id] ?? 0}`).join(', ') : '';
+}
+
+function createPanel(): Panel {
+  const p = new Panel(store, {
+    resetTime: () => clock.resetToRealTime(),
+    refreshData: () => void data.refresh(),
+  });
+  p.setStatus(data.status, countsText(data.status));
+  return p;
+}
+let panel: Panel = createPanel();
 
 const host = installHostApi(store, {
   setPaused: (p) => {
@@ -58,6 +69,13 @@ installLivelyBridge(host.api);
 store.subscribe((s, changed) => {
   if (changed.has('theme')) view.setTheme(THEMES[s.theme]);
   if (changed.has('timeScale')) clock.setTimeScale(s.timeScale);
+  if (changed.has('locationMode') || changed.has('latitude') || changed.has('longitude')) view.setLocation(resolveLocation(s));
+  if (changed.has('language')) {
+    setLanguage(s.language);
+    panel.destroy();
+    panel = createPanel();
+    hud.setStatus(data.status);
+  }
   hud.applySettings(s);
 });
 hud.applySettings(store.get());

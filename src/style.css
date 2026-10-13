@@ -133,3 +133,10 @@ body {
 .in-page-menu button.selected {
   color: #2cc9ff;
 }
+
+.settings-panel .credits {
+  padding: 6px 8px 8px;
+  font-size: 10px;
+  line-height: 1.6;
+  color: rgba(220, 230, 240, 0.65);
+}

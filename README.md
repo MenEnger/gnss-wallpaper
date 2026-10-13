@@ -1,90 +1,48 @@
 # GNSS Orbit Viewer
 
-GNSS 衛星群（GPS / GLONASS / Galileo / BeiDou / QZSS）を 3D 地球とともにリアルタイム表示する Web アプリ。
-要求仕様 v0.2 の初期実装（プロトタイプ）。
+[日本語](README.ja.md)
+
+A live wallpaper / web app that shows the GPS, GLONASS, Galileo, BeiDou and QZSS satellites orbiting a 3D Earth in real time.
+
+![GNSS Orbit Viewer](docs/demo.gif)
+
+- **Real orbits.** It downloads the current orbital elements from [CelesTrak](https://celestrak.org/) and propagates them with SGP4 in a Web Worker, so every satellite is where it really is right now.
+- **Real sky.** The Earth rotates with sidereal time, and the day/night terminator and city lights follow the actual Sun position.
+- **Two themes.** *Realistic* has NASA imagery and soft trails. *Technical* has a dark map with a grid and saturated colours per constellation.
+- **Readable at a glance.** Fading trails or full orbits, per-constellation toggles, and satellite labels that avoid overlapping each other.
+- **Altitude scaling.** GNSS orbits are 3–6 Earth radii out, so by default only the height above the surface is shrunk to 10%. 100% gives true scale.
+- **Your location.** A marker shows roughly where you are. It is estimated from your time zone (no IP lookup, no GPS), or you can set the latitude and longitude yourself.
+- **Wallpaper-friendly.** Rendering pauses when hidden or when Lively pauses it. You can cap the frame rate, and the orbit data is cached locally.
+- English and Japanese UI. The language follows your system by default.
+
+## Use with Lively Wallpaper
+
+1. Download `gnss-orbit-viewer-lively-<version>.zip` from [Releases](https://github.com/MenEnger/gnss-wallpaper/releases).
+2. Drag and drop the zip onto the Lively window.
+3. Right-click the wallpaper → **Customise** to change the theme, labels, orbit lines, altitude scale, constellations, location, camera, time scale and frame-rate cap.
+
+Notes:
+- An internet connection is needed to download orbit data (at most every 2 hours) and the Earth textures. After the first run, cached orbit data is used if the network is unavailable.
+- Lively forwards mouse input without reliable button state, so dragging to rotate the view is disabled under Lively. The camera orbits automatically.
+
+## Run in a browser
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173
-npm run build    # dist/ に静的ファイルを出力
+npm run dev            # http://localhost:5173
+npm run build          # static files in dist/
+npm run build:lively   # Lively package in release/
 ```
 
-## 操作
+Drag to rotate and scroll to zoom. Press `H` to show or hide the settings panel.
 
-- ドラッグで回転、ホイールでズーム。操作後、設定した秒数で自動周回に戻る
-- `H` キーで設定 UI の表示／非表示（非表示時は右上の ⚙ にカーソルを当てると出る）
+## Credits
 
-## 構成
+- Orbital data: [CelesTrak](https://celestrak.org/) GP data (OMM/JSON), propagated with [satellite.js](https://github.com/shashwatak/satellite-js) (SGP4).
+- Earth imagery: **NASA** Blue Marble and Black Marble (NASA Earth Observatory). The images are loaded at runtime from the example images of [three-globe](https://github.com/vasturiano/three-globe) and are not bundled with this project. Use of NASA imagery does not imply NASA endorsement.
+- Time-zone locations: [IANA tz database](https://github.com/eggert/tz) (public domain).
+- Rendering: [three.js](https://threejs.org/). Settings panel: [lil-gui](https://lil-gui.georgealways.com/).
 
-| ディレクトリ | 役割 |
-| --- | --- |
-| `src/data/` | CelesTrak からの OMM(JSON) 取得・キャッシュ・鮮度判定、衛星群の分類 |
-| `src/orbit/` | SGP4 計算（Web Worker）、時刻格子での標本管理と補間、シミュレーション時計、太陽方向・GMST |
-| `src/render/` | three.js による描画（地球・マーカー・軌跡・ラベル・カメラ）。計算は持たない |
-| `src/config/` | 設定（`settings.ts`）とビジュアルテーマ（`themes.ts`）。衛星データとは独立 |
-| `src/ui/` | 設定オーバーレイ（lil-gui）と状態表示 |
-| `src/host/` | 壁紙ホスト向けの公開 API |
+## License
 
-### 座標と高度倍率
-
-- 描画は慣性系（TEME ≒ ECI）。軌道面は固定され、地球が GMST に従って自転する
-- 描画単位は地球赤道半径。衛星の描画半径 = `Re + (r − Re) × 高度倍率`（地球の大きさは不変、点と軌道線に同じ倍率）
-- 内部の位置（km）は倍率を掛けずに保持している
-
-### 軌道データ
-
-- `https://celestrak.org/NORAD/elements/gp.php?GROUP=gnss&FORMAT=json` を取得し、`OBJECT_NAME` で衛星群を分類（SBAS・NavIC は除外）
-- `localStorage` にキャッシュ。CelesTrak の更新間隔に合わせ、2 時間以内は再取得しない
-- 取得から 24 時間以上経過、過半数のエポックが 3 日以上前、または取得失敗でキャッシュ利用中の場合は「古いデータ」として通知
-
-### 地表テクスチャ
-
-既定では three-globe のサンプル画像（NASA Blue Marble / Black Marble 由来）を unpkg から読み込む。
-オフラインで使う場合（壁紙化など）は画像を `public/` に置き、`src/config/themes.ts` のパスを差し替える。
-
-## Lively Wallpaper で使う
-
-```bash
-npm run build:lively   # release/gnss-orbit-viewer-lively-<version>.zip を作成
-```
-
-できた .zip を Lively のウィンドウにドラッグ＆ドロップして取り込む。
-
-- **カスタマイズ画面**: ギャラリーで右クリック →「カスタマイズ」。テーマ・ラベル・軌道線・高度倍率・衛星群・カメラ・時間倍率・FPS 上限を変更できる。
-  項目の定義は `src/host/livelyProperties.ts` にあり、`LivelyProperties.json` はそこから生成される
-- **一時停止**: `LivelyInfo.json` の `"Arguments": "--pause-event true"` により、全画面アプリ実行中などに Lively が一時停止すると描画と軌道計算も止まる
-- Lively はファイルを自分のライブラリにコピーするため、ビルドし直したら取り込み直しが必要。開発中は `npm run dev` を動かしたまま URL `http://localhost:5173` を壁紙として追加すると、変更がそのまま反映される
-- Lively はマウス移動を常に転送する一方、押下・解放はデスクトップが前面のときしか転送せず、移動時のボタン状態も正しく渡さない。ドラッグ状態の取り残しを防ぐため、**Lively 上ではドラッグによる視点操作はできない**（自動周回のみ。設定パネルのクリック操作は可）
-
-## 外部からの制御（壁紙ホスト向け）
-
-URL クエリ:
-
-```
-?theme=technical&labels=id&orbit=full&trail=90&alt=1&speed=60&autocam=0&camspeed=2&camdist=14&ui=0&fps=30&gnss=gps,galileo
-```
-
-JavaScript / postMessage:
-
-```js
-window.gnssViewer.setSettings({ theme: 'technical', altitudeScale: 1 });
-window.gnssViewer.setPaused(true);           // ホスト側で不可視になったとき描画停止
-window.gnssViewer.onStatus((s) => console.log(s.state, s.message));
-
-window.postMessage({ type: 'gnss-viewer:settings', settings: { labelMode: 'id' } });
-window.postMessage({ type: 'gnss-viewer:paused', paused: true });
-```
-
-ブラウザのタブが非表示の間は `requestAnimationFrame` が止まるため描画しない。`maxFps` でフレームレートの上限も設定できる。
-
-## 初期値（プロトタイプでの暫定値）
-
-| 項目 | 値 |
-| --- | --- |
-| 衛星高度倍率 | 10% |
-| 軌跡の長さ | 120 分 |
-| カメラ距離 | 5 地球半径（縦長画面では自動的に引く） |
-| 自動周回速度 | 1.2 度/秒、仰角 18 度 ± 12 度をゆっくり揺らす |
-| 手動操作後の復帰 | 8 秒 |
-
-仕様 9 章の検証項目（倍率・軌跡・カメラ・テーマ表現・ラベル密度）は、実機での見栄え確認を経て調整する。
+[MIT](LICENSE). The Earth imagery and orbital data are provided by their respective sources (see Credits) and are not covered by this license.

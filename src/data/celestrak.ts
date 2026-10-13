@@ -10,6 +10,8 @@ export interface SatelliteRecord {
 }
 
 export type DataState = 'loading' | 'fresh' | 'stale' | 'error';
+/** 状態の詳細。表示文は i18n の status.<code> で組み立てる */
+export type StatusCode = 'loading' | 'fresh' | 'staleFetch' | 'staleEpochs' | 'cacheAfterError' | 'cacheAfterErrorDetail' | 'fetchError';
 
 export interface DataStatus {
   state: DataState;
@@ -19,7 +21,9 @@ export interface DataStatus {
   oldestEpoch: Date | null;
   /** 直近の取得が失敗しキャッシュで代替している */
   usingCacheAfterError: boolean;
-  message: string;
+  code: StatusCode;
+  /** 取得からの経過時間（staleFetch）やエラー内容など、表示文の差し込み値 */
+  params: Record<string, string | number>;
   counts: Partial<Record<ConstellationId, number>>;
 }
 
@@ -80,7 +84,8 @@ export class OrbitDataSource {
     fetchedAt: null,
     oldestEpoch: null,
     usingCacheAfterError: false,
-    message: '軌道データを読み込み中…',
+    code: 'loading',
+    params: {},
     counts: {},
   };
 
@@ -113,7 +118,7 @@ export class OrbitDataSource {
       const res = await fetch(SOURCE_URL, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const body = (await res.json()) as unknown;
-      if (!Array.isArray(body) || body.length === 0) throw new Error('空のレスポンス');
+      if (!Array.isArray(body) || body.length === 0) throw new Error('empty response');
       const entry: CacheEntry = { fetchedAt: Date.now(), records: body as OMMJsonObject[] };
       writeCache(entry);
       this.apply(entry, false);
@@ -125,10 +130,9 @@ export class OrbitDataSource {
         this.updateStaleness();
       }
       if (!cache) {
-        this.setStatus({ ...this.status, state: 'error', message: `軌道データを取得できません (${String(e)})` });
+        this.setStatus({ ...this.status, state: 'error', code: 'fetchError', params: { error: String(e) } });
       } else {
-        this.status.message = `更新に失敗したためキャッシュを使用中 (${String(e)})`;
-        this.onStatus(this.status);
+        this.setStatus({ ...this.status, code: 'cacheAfterErrorDetail', params: { error: String(e) } });
       }
     }
   }
@@ -165,11 +169,14 @@ export class OrbitDataSource {
     const staleFetch = now - this.fetchedAt > STALE_FETCH_MS;
     const staleEpochs = this.epochs.length > 0 && old > this.epochs.length / 2;
     const stale = staleFetch || staleEpochs || this.status.usingCacheAfterError;
-    let message = '最新の軌道データを使用中';
-    if (staleFetch) message = `軌道データが古くなっています（取得から ${Math.floor((now - this.fetchedAt) / 3600_000)} 時間）`;
-    else if (staleEpochs) message = '多くの衛星の軌道要素エポックが 3 日以上前です';
-    else if (this.status.usingCacheAfterError) message = '更新に失敗したためキャッシュを使用中';
-    this.setStatus({ ...this.status, state: stale ? 'stale' : 'fresh', message });
+    let code: StatusCode = 'fresh';
+    const params: DataStatus['params'] = {};
+    if (staleFetch) {
+      code = 'staleFetch';
+      params.hours = Math.floor((now - this.fetchedAt) / 3600_000);
+    } else if (staleEpochs) code = 'staleEpochs';
+    else if (this.status.usingCacheAfterError) code = 'cacheAfterError';
+    this.setStatus({ ...this.status, state: stale ? 'stale' : 'fresh', code, params });
   }
 
   private setStatus(s: DataStatus): void {

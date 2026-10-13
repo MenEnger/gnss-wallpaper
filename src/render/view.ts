@@ -6,6 +6,7 @@ import { gmst, sunDirectionEci } from '../orbit/astro';
 import { CameraRig } from './cameraRig';
 import { Earth } from './earth';
 import { LabelLayer } from './labels';
+import { LocationMarker } from './locationMarker';
 import { SatelliteLayer } from './satellites';
 
 function createStars(count: number): THREE.Points {
@@ -35,6 +36,7 @@ export class View {
   readonly rig: CameraRig;
   private scene = new THREE.Scene();
   private earth: Earth;
+  private marker = new LocationMarker();
   private sats = new SatelliteLayer();
   private labels: LabelLayer;
   private stars = createStars(2500);
@@ -51,6 +53,7 @@ export class View {
     this.camera = new THREE.PerspectiveCamera(35, 1, 0.05, 1000);
     this.rig = new CameraRig(this.camera, this.renderer.domElement);
     this.earth = new Earth(this.renderer.capabilities.getMaxAnisotropy());
+    this.earth.group.add(this.marker.object);
     this.scene.add(this.stars, this.earth.group, this.sats.group);
 
     new ResizeObserver(() => this.resize()).observe(container);
@@ -79,6 +82,12 @@ export class View {
     this.earth.setTheme(theme);
     this.sats.setTheme(theme);
     this.sats.setPixelRatio(this.renderer.getPixelRatio());
+    this.marker.setStyle(theme.locationColor, this.renderer.getPixelRatio());
+  }
+
+  /** 地表の現在地マーカー（null で非表示） */
+  setLocation(location: { lat: number; lon: number } | null): void {
+    this.marker.set(location);
   }
 
   setRecords(engine: OrbitEngine): void {
@@ -96,6 +105,7 @@ export class View {
     const ratio = this.renderer.getPixelRatio();
     this.sats.setResolution(w * ratio, h * ratio);
     this.sats.setPixelRatio(ratio);
+    this.marker.setStyle(this.theme.locationColor, ratio);
     this.labels.resize(w, h, ratio);
   }
 
@@ -104,6 +114,7 @@ export class View {
     const [x, y, z] = sunDirectionEci(this.date);
     this.sunScene.set(x, z, -y);
     this.earth.update(gmst(this.date), this.sunScene);
+    this.marker.update(performance.now() / 1000);
 
     this.rig.update(dtSec, {
       auto: s.autoCamera,

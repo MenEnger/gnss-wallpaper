@@ -1,8 +1,11 @@
 import { CONSTELLATION_IDS, type ConstellationId } from '../data/constellations';
+import type { LanguageSetting } from '../i18n';
 
 export type ThemeId = 'realistic' | 'technical';
 export type OrbitLineMode = 'trail' | 'full' | 'none';
 export type LabelMode = 'off' | 'id' | 'name';
+/** 現在地の表示。auto はタイムゾーンから推定（IP・GPS は使わない） */
+export type LocationMode = 'off' | 'auto' | 'manual';
 
 /**
  * 表示状態のすべて。壁紙ホストなど外部からはこの型の部分集合を渡して制御する。
@@ -29,6 +32,11 @@ export interface Settings {
   showUi: boolean;
   /** 0 = 制限なし */
   maxFps: number;
+  language: LanguageSetting;
+  locationMode: LocationMode;
+  /** 手動指定の緯度経度 [度] */
+  latitude: number;
+  longitude: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -45,6 +53,10 @@ export const DEFAULT_SETTINGS: Settings = {
   cameraResumeSec: 8,
   showUi: true,
   maxFps: 0,
+  language: 'auto',
+  locationMode: 'auto',
+  latitude: 35.68,
+  longitude: 139.77,
 };
 
 export type SettingsPatch = Partial<Omit<Settings, 'constellations'>> & {
@@ -124,6 +136,10 @@ function sanitize(s: Settings): Settings {
     cameraDistance: clamp(s.cameraDistance, 1.5, 30, d.cameraDistance),
     cameraResumeSec: clamp(s.cameraResumeSec, 0, 600, d.cameraResumeSec),
     maxFps: clamp(s.maxFps, 0, 240, d.maxFps),
+    language: (['auto', 'en', 'ja'] as const).includes(s.language) ? s.language : d.language,
+    locationMode: (['off', 'auto', 'manual'] as const).includes(s.locationMode) ? s.locationMode : d.locationMode,
+    latitude: clamp(s.latitude, -90, 90, d.latitude),
+    longitude: clamp(s.longitude, -180, 180, d.longitude),
   };
 }
 
@@ -144,6 +160,10 @@ function fromQuery(search: string): SettingsPatch {
   p.cameraDistance = num('camdist');
   p.showUi = bool('ui');
   p.maxFps = num('fps');
+  if (q.has('lang')) p.language = q.get('lang') as LanguageSetting;
+  if (q.has('location')) p.locationMode = q.get('location') as LocationMode;
+  p.latitude = num('lat');
+  p.longitude = num('lon');
   if (q.has('gnss')) {
     const on = new Set(q.get('gnss')!.split(','));
     p.constellations = Object.fromEntries(CONSTELLATION_IDS.map((id) => [id, on.has(id)]));

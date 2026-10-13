@@ -36,6 +36,8 @@ export interface Theme {
   /** 線幅 [CSS px] */
   lineWidth: number;
   labelStyle: { font: string; color: string | null; shadow: string };
+  /** 現在地マーカーの色 */
+  locationColor: string;
   showStars: boolean;
 }
 
@@ -64,6 +66,7 @@ export const THEMES: Record<ThemeId, Theme> = {
     trailOpacity: 0.45,
     orbitOpacity: 0.12,
     lineWidth: 1.2,
+    locationColor: '#ffe08a',
     labelStyle: { font: '500 11px system-ui, sans-serif', color: 'rgba(230,236,245,0.75)', shadow: 'rgba(0,0,0,0.9)' },
     showStars: true,
   },
@@ -93,6 +96,7 @@ export const THEMES: Record<ThemeId, Theme> = {
     trailOpacity: 0.9,
     orbitOpacity: 0.2,
     lineWidth: 1.6,
+    locationColor: '#ffffff',
     labelStyle: { font: '600 11px ui-monospace, Consolas, monospace', color: null, shadow: 'rgba(0,0,0,0.95)' },
     showStars: false,
   },
